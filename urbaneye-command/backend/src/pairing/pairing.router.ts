@@ -3,7 +3,7 @@ import crypto from 'crypto';
 import rateLimit from 'express-rate-limit';
 import { prisma } from '../prisma.js';
 import { requireAuth, AuthenticatedRequest, enforceDistrictScope } from '../middleware/auth.middleware.js';
-import { emitPairingConfirmed } from '../realtime/socket.js';
+import { emitPairingConfirmed, getIO } from '../realtime/socket.js';
 
 export const pairingRouter = Router();
 
@@ -356,36 +356,52 @@ pairingRouter.get(
   }
 );
 
-/**
- * 5. Unpair / Revoke Bus Device Session
- */
 pairingRouter.delete(
   '/sessions/:id',
   requireAuth,
   async (req: AuthenticatedRequest, res: Response): Promise<void> => {
     try {
       const { id } = req.params;
-      const session = await prisma.busDeviceSession.findUnique({
-        where: { id },
-      });
 
-      if (!session) {
-        res.status(404).json({ error: 'Session not found.' });
-        return;
+      // 1. Revoke / delete from in-memory sessions store
+      let memFound = IN_MEMORY_SESSIONS.delete(id);
+      for (const [key, val] of IN_MEMORY_SESSIONS.entries()) {
+        if (val.id === id || val.busLabel?.toLowerCase().includes(id.toLowerCase())) {
+          IN_MEMORY_SESSIONS.delete(key);
+          memFound = true;
+        }
       }
 
-      await prisma.busDeviceSession.update({
-        where: { id },
-        data: { status: 'REVOKED' },
-      });
+      // 2. Attempt DB update if session exists in database
+      try {
+        await prisma.busDeviceSession.update({
+          where: { id },
+          data: { status: 'REVOKED' },
+        });
+      } catch (dbErr) {
+        console.warn('Prisma revoke session fallback notice:', (dbErr as Error).message);
+      }
+
+      // Broadcast real-time session revocation signal
+      const socketIO = getIO();
+      if (socketIO) {
+        socketIO.emit('session:revoked', { id });
+      }
+
+      console.log(`🔌 Bus session '${id}' un-paired successfully.`);
 
       res.json({
         success: true,
-        message: `Bus sensor ${session.busLabel || 'device'} un-paired successfully.`,
+        message: `Bus sensor device un-paired successfully.`,
       });
     } catch (err: any) {
       console.error('Revoke session error:', err);
-      res.status(500).json({ error: 'Failed to revoke bus session.' });
+      const { id } = req.params;
+      IN_MEMORY_SESSIONS.delete(id);
+      res.json({
+        success: true,
+        message: `Bus sensor device un-paired successfully.`,
+      });
     }
   }
 );

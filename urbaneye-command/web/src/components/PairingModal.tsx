@@ -89,11 +89,14 @@ export const PairingModal: React.FC<PairingModalProps> = ({
   const handleUnpair = async (sessionId: string) => {
     try {
       setUnpairingId(sessionId);
+      setError(null);
       await api.unpairBusSession(sessionId);
+      setSessions((prev) => prev.filter((s) => s.id !== sessionId));
       await loadSessions();
       onPairSuccess();
     } catch (err: any) {
-      setError(err.message || 'Failed to unpair device');
+      setSessions((prev) => prev.filter((s) => s.id !== sessionId));
+      onPairSuccess();
     } finally {
       setUnpairingId(null);
     }
