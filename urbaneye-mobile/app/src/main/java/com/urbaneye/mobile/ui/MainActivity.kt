@@ -289,18 +289,32 @@ class MainActivity : AppCompatActivity() {
                     if (det.confidence >= detector.targetConfidenceThreshold) {
                         val tel = locationTracker.currentTelemetry
 
-                        eventSyncManager.dispatchDetectionEvent(
-                            deviceSessionId = activeSessionId,
-                            type = det.type,
-                            confidence = det.confidence,
-                            lat = tel.latitude,
-                            lon = tel.longitude,
-                            heading = tel.heading,
-                            speed = tel.speedKmh,
-                            imageSnippetBase64 = det.croppedSnippetBase64,
-                            estimatedDiameterCm = det.estimatedDiameterCm?.toFloat(),
-                            estimatedRepairCost = det.estimatedRepairCost?.toFloat()
-                        )
+                        if (det.type == "RASH_DRIVING" || det.type == "HIT_AND_RUN" || det.category == "INCIDENT") {
+                            eventSyncManager.dispatchIncidentEvent(
+                                deviceSessionId = activeSessionId,
+                                category = det.type,
+                                confidence = det.confidence,
+                                lat = tel.latitude,
+                                lon = tel.longitude,
+                                plateText = det.registrationNumber,
+                                vehicleType = det.vehicleType ?: "CAR",
+                                speedKmh = det.speedKmh ?: tel.speedKmh,
+                                imageSnippetBase64 = det.croppedSnippetBase64
+                            )
+                        } else {
+                            eventSyncManager.dispatchDetectionEvent(
+                                deviceSessionId = activeSessionId,
+                                type = det.type,
+                                confidence = det.confidence,
+                                lat = tel.latitude,
+                                lon = tel.longitude,
+                                heading = tel.heading,
+                                speed = tel.speedKmh,
+                                imageSnippetBase64 = det.croppedSnippetBase64,
+                                estimatedDiameterCm = det.estimatedDiameterCm?.toFloat(),
+                                estimatedRepairCost = det.estimatedRepairCost?.toFloat()
+                            )
+                        }
 
                         tripEventsCount++
                         runOnUiThread {

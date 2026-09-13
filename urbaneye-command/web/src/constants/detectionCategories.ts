@@ -34,89 +34,110 @@ export interface DetectionCategory {
  * Update this array ONLY; all consumers derive from it automatically.
  */
 export const DETECTION_CATEGORIES: DetectionCategory[] = [
-  // ── PHASE 3 — NOT YET IMPLEMENTED, reserved here for color consistency ──────
   {
-    code: 'INCIDENT',
-    displayName: 'Incident / Emergency',
-    phase: 3,
-    hex: '#dc2626',   // Red
+    code: 'HIT_AND_RUN',
+    displayName: 'Hit & Run Incident',
+    phase: 1,
+    hex: '#881337',   // Rose-900 / Dark Red
     priority: 1,
   },
   {
-    code: 'ANPR_FLAG',
-    displayName: 'Flagged Vehicle (ANPR)',
-    phase: 3,
-    hex: '#e11d48',   // Rose
+    code: 'RASH_DRIVING',
+    displayName: 'Rash / Dangerous Driving',
+    phase: 1,
+    hex: '#b91c1c',   // Red-700
     priority: 2,
   },
-
-  // ── PHASE 1 — LIVE ──────────────────────────────────────────────────────────
+  {
+    code: 'TRAFFIC_BOTTLENECK',
+    displayName: 'Traffic Bottleneck',
+    phase: 1,
+    hex: '#dc2626',   // Red-600
+    priority: 3,
+  },
+  {
+    code: 'SCHOOL_CHILDREN_CROSSING',
+    displayName: 'School Children Crossing',
+    phase: 1,
+    hex: '#10b981',   // Emerald
+    priority: 4,
+  },
+  {
+    code: 'MISSING_DIVIDER',
+    displayName: 'Missing Road Divider',
+    phase: 1,
+    hex: '#0891b2',   // Cyan
+    priority: 5,
+  },
+  {
+    code: 'DIVIDER',
+    displayName: 'Missing Road Divider',
+    phase: 1,
+    hex: '#0891b2',   // Cyan
+    priority: 5,
+  },
+  {
+    code: 'MISSING_ZEBRA_CROSSING',
+    displayName: 'Missing Zebra Crossing',
+    phase: 1,
+    hex: '#059669',   // Emerald
+    priority: 6,
+  },
+  {
+    code: 'ZEBRA_CROSSING',
+    displayName: 'Missing Zebra Crossing',
+    phase: 1,
+    hex: '#059669',   // Emerald
+    priority: 6,
+  },
+  {
+    code: 'DAMAGED_SIGNBOARD',
+    displayName: 'Damaged/Missing Signboard',
+    phase: 1,
+    hex: '#ca8a04',   // Gold
+    priority: 7,
+  },
+  {
+    code: 'TRAFFIC_SIGN',
+    displayName: 'Damaged/Missing Signboard',
+    phase: 1,
+    hex: '#ca8a04',   // Gold
+    priority: 7,
+  },
   {
     code: 'POTHOLE',
     displayName: 'Pothole',
     phase: 1,
     hex: '#f97316',   // Orange
-    priority: 3,
+    priority: 8,
   },
   {
     code: 'ROAD_CRACK',
     displayName: 'Road Crack',
     phase: 1,
     hex: '#eab308',   // Amber
-    priority: 4,
+    priority: 9,
   },
   {
     code: 'SURFACE_DAMAGE',
     displayName: 'Surface Wear',
     phase: 1,
     hex: '#92400e',   // Ochre / Dark Brown
-    priority: 5,
+    priority: 10,
   },
   {
     code: 'WATERLOGGING',
     displayName: 'Waterlogging',
     phase: 1,
     hex: '#2563eb',   // Blue
-    priority: 6,
+    priority: 11,
   },
-
-  // ── PHASE 2 — NOT YET IMPLEMENTED, reserved here for color consistency ──────
-  {
-    code: 'TRAFFIC_SIGN',
-    displayName: 'Traffic Sign Issue',
-    phase: 2,
-    hex: '#ca8a04',   // Gold
-    priority: 7,
-  },
-  {
-    code: 'DIVIDER',
-    displayName: 'Divider Issue',
-    phase: 2,
-    hex: '#0891b2',   // Cyan
-    priority: 8,
-  },
-  {
-    code: 'ZEBRA_CROSSING',
-    displayName: 'Zebra Crossing Issue',
-    phase: 2,
-    hex: '#059669',   // Emerald
-    priority: 9,
-  },
-  {
-    code: 'VEHICLE_DETECTION',
-    displayName: 'Vehicle Detection',
-    phase: 2,
-    hex: '#4f46e5',   // Indigo
-    priority: 10,
-  },
-
-  // ── PHASE 1 — LIVE ──────────────────────────────────────────────────────────
   {
     code: 'VEHICLE_FLOW',
     displayName: 'Traffic Stream (density)',
     phase: 1,
     hex: '#7c3aed',   // Purple
-    priority: 11,
+    priority: 12,
   },
 ];
 

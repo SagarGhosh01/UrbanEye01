@@ -92,6 +92,62 @@ class EventSyncManager(private val context: Context) {
         }
     }
 
+    fun dispatchIncidentEvent(
+        deviceSessionId: String,
+        category: String,
+        confidence: Float,
+        lat: Double,
+        lon: Double,
+        plateText: String?,
+        vehicleType: String,
+        speedKmh: Float,
+        imageSnippetBase64: String?
+    ) {
+        scope.launch {
+            val timestamp = isoDateFormat.format(Date())
+            val request = com.urbaneye.mobile.network.IncidentIngestRequest(
+                deviceSessionId = deviceSessionId,
+                category = category,
+                confidence = confidence,
+                latitude = lat,
+                longitude = lon,
+                plateText = plateText,
+                vehicleType = vehicleType,
+                speedKmh = speedKmh,
+                imageSnippet = imageSnippetBase64,
+                timestamp = timestamp
+            )
+
+            if (isOnline()) {
+                try {
+                    val response = NetworkClient.apiService.ingestIncident(request)
+                    if (response.isSuccessful) {
+                        Log.i(tag, "🚨 Incident Alert ingested live! ID: ${response.body()?.incidentId}")
+                    }
+                } catch (e: Exception) {
+                    Log.w(tag, "Incident upload failed: ${e.message}")
+                }
+            }
+        }
+    }
+
+            // Buffer locally in Room database for offline retry
+            val entity = EventEntity(
+                deviceSessionId = deviceSessionId,
+                type = type,
+                confidence = confidence,
+                latitude = lat,
+                longitude = lon,
+                heading = heading,
+                speed = speed,
+                imageSnippet = imageSnippetBase64,
+                timestamp = timestamp
+            )
+            eventDao.insertEvent(entity)
+            Log.d(tag, "📦 Event queued in offline local buffer. Pending: ${eventDao.getPendingCount()}")
+        }
+    }
+
     private suspend fun flushQueue() {
         if (isFlushing) return
         isFlushing = true

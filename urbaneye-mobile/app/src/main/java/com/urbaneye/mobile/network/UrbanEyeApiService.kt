@@ -40,7 +40,11 @@ data class EventIngestRequest(
     @SerializedName("imageSnippet") val imageSnippet: String?,
     @SerializedName("timestamp") val timestamp: String,
     @SerializedName("estimatedDiameterCm") val estimatedDiameterCm: Float? = null,
-    @SerializedName("estimatedRepairCost") val estimatedRepairCost: Float? = null
+    @SerializedName("estimatedRepairCost") val estimatedRepairCost: Float? = null,
+    @SerializedName("category") val category: String? = null,
+    @SerializedName("registrationNumber") val registrationNumber: String? = null,
+    @SerializedName("plateConfidence") val plateConfidence: Float? = null,
+    @SerializedName("vehicleType") val vehicleType: String? = null
 )
 
 data class EventIngestResponse(
@@ -48,6 +52,25 @@ data class EventIngestResponse(
     @SerializedName("eventId") val eventId: String,
     @SerializedName("districtId") val districtId: String,
     @SerializedName("busLabel") val busLabel: String
+)
+
+data class IncidentIngestRequest(
+    @SerializedName("deviceSessionId") val deviceSessionId: String,
+    @SerializedName("category") val category: String, // ACCIDENT, HIT_AND_RUN, RASH_DRIVING, DANGEROUS_DRIVING
+    @SerializedName("confidence") val confidence: Float,
+    @SerializedName("latitude") val latitude: Double,
+    @SerializedName("longitude") val longitude: Double,
+    @SerializedName("plateText") val plateText: String? = null,
+    @SerializedName("vehicleType") val vehicleType: String = "CAR",
+    @SerializedName("speedKmh") val speedKmh: Float = 0f,
+    @SerializedName("imageSnippet") val imageSnippet: String? = null,
+    @SerializedName("timestamp") val timestamp: String
+)
+
+data class IncidentIngestResponse(
+    @SerializedName("success") val success: Boolean,
+    @SerializedName("incidentId") val incidentId: String,
+    @SerializedName("districtId") val districtId: String
 )
 
 interface UrbanEyeApiService {
@@ -59,6 +82,9 @@ interface UrbanEyeApiService {
 
     @POST("api/events/ingest")
     suspend fun ingestEvent(@Body request: EventIngestRequest): Response<EventIngestResponse>
+
+    @POST("api/incidents/ingest")
+    suspend fun ingestIncident(@Body request: IncidentIngestRequest): Response<IncidentIngestResponse>
 }
 
 object NetworkClient {

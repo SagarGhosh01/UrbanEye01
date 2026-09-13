@@ -2,7 +2,19 @@ export type Role = 'NATIONAL_ADMIN' | 'STATE_ADMIN' | 'DISTRICT_HEAD';
 
 export type EventStatus = 'NEW' | 'REVIEWED' | 'ASSIGNED_FOR_REPAIR' | 'RESOLVED';
 
-export type DefectType = 'POTHOLE' | 'ROAD_CRACK' | 'SURFACE_DAMAGE' | 'WATERLOGGING' | 'VEHICLE_FLOW';
+export type DefectType = 
+  | 'POTHOLE' 
+  | 'ROAD_CRACK' 
+  | 'SURFACE_DAMAGE' 
+  | 'WATERLOGGING' 
+  | 'MISSING_DIVIDER' 
+  | 'MISSING_ZEBRA_CROSSING' 
+  | 'DAMAGED_SIGNBOARD' 
+  | 'VEHICLE_FLOW' 
+  | 'TRAFFIC_BOTTLENECK' 
+  | 'SCHOOL_CHILDREN_CROSSING' 
+  | 'RASH_DRIVING' 
+  | 'HIT_AND_RUN';
 
 export interface User {
   id: string;

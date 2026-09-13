@@ -5,7 +5,26 @@ import { getIO } from '../realtime/socket.js';
 export const incidentsRouter = Router();
 
 
-const DEFAULT_INCIDENTS = [
+export interface IncidentRecord {
+  id: string;
+  category: string;
+  confidence: number;
+  latitude: number;
+  longitude: number;
+  plateText: string | null;
+  vehicleType: string;
+  speedKmh: number;
+  frameTrajectory: string;
+  busLabel: string;
+  districtId: string;
+  imageSnippet: string | null;
+  status: string;
+  authorityNotes: string | null;
+  timestamp: string;
+  createdAt: string;
+}
+
+const DEFAULT_INCIDENTS: IncidentRecord[] = [
   {
     id: 'inc-101',
     category: 'ACCIDENT',
@@ -131,6 +150,104 @@ incidentsRouter.get('/', async (req, res) => {
         activeTrackedVehicles: 14,
       },
       timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    res.status(500).json({ status: 'ERROR', message: (error as Error).message });
+  }
+});
+
+// POST /api/incidents/ingest - Mobile Ingestion Endpoint for Incidents & Vehicle Tracking
+incidentsRouter.post('/ingest', async (req, res) => {
+  try {
+    const {
+      deviceSessionId,
+      category,
+      confidence,
+      latitude,
+      longitude,
+      plateText,
+      vehicleType,
+      speedKmh,
+      imageSnippet,
+      timestamp,
+    } = req.body;
+
+    if (!deviceSessionId || !category || confidence === undefined || latitude === undefined || longitude === undefined) {
+      res.status(400).json({ error: 'Missing required incident fields: deviceSessionId, category, confidence, latitude, longitude.' });
+      return;
+    }
+
+    // Resolve device session & district
+    const session = await prisma.busDeviceSession.findUnique({
+      where: { id: deviceSessionId },
+    });
+
+    const districtId = session?.districtId || 'dist-kapurthala';
+    const busLabel = session?.busLabel || 'Mobile Sensor Fleet';
+
+    const numLat = Number(latitude);
+    const numLon = Number(longitude);
+    const numSpeed = Number(speedKmh || 65);
+
+    const frameTrajectory = JSON.stringify([
+      { lat: numLat - 0.003, lon: numLon - 0.003, speed: numSpeed + 8, timestamp: new Date(Date.now() - 15000).toISOString() },
+      { lat: numLat - 0.001, lon: numLon - 0.001, speed: numSpeed + 4, timestamp: new Date(Date.now() - 7000).toISOString() },
+      { lat: numLat, lon: numLon, speed: numSpeed, timestamp: timestamp || new Date().toISOString() },
+    ]);
+
+    let incident;
+    try {
+      incident = await prisma.incident.create({
+        data: {
+          category: category.toUpperCase(),
+          confidence: Number(confidence),
+          latitude: numLat,
+          longitude: numLon,
+          plateText: plateText ? String(plateText).trim() : null,
+          vehicleType: vehicleType ? String(vehicleType).toUpperCase() : 'CAR',
+          speedKmh: numSpeed,
+          frameTrajectory,
+          busLabel,
+          districtId,
+          imageSnippet: imageSnippet || null,
+          status: 'PENDING',
+          timestamp: timestamp ? new Date(timestamp) : new Date(),
+        },
+      });
+    } catch {
+      incident = {
+        id: `inc-${Date.now()}`,
+        category: category.toUpperCase(),
+        confidence: Number(confidence),
+        latitude: numLat,
+        longitude: numLon,
+        plateText: plateText ? String(plateText).trim() : null,
+        vehicleType: vehicleType ? String(vehicleType).toUpperCase() : 'CAR',
+        speedKmh: numSpeed,
+        frameTrajectory,
+        busLabel,
+        districtId,
+        imageSnippet: imageSnippet || null,
+        status: 'PENDING',
+        authorityNotes: null,
+        timestamp: timestamp || new Date().toISOString(),
+        createdAt: new Date().toISOString(),
+      };
+      DEFAULT_INCIDENTS.unshift(incident);
+    }
+
+    // Broadcast Socket.IO real-time alert
+    const socketIO = getIO();
+    if (socketIO) {
+      socketIO.emit('incident:new', incident);
+      socketIO.to(`district:${districtId}`).emit('incident:new', incident);
+    }
+
+    res.status(201).json({
+      success: true,
+      incidentId: incident.id,
+      districtId,
+      message: `Incident '${category}' ingested and broadcasted to Central Command.`,
     });
   } catch (error) {
     res.status(500).json({ status: 'ERROR', message: (error as Error).message });
