@@ -150,8 +150,8 @@ export const Header: React.FC<HeaderProps> = ({
             </span>
           </div>
 
-          {/* Live Phone Camera Sensor Button */}
-          {onOpenLiveCamera && (
+          {/* Live Phone Camera Sensor Button (Only visible for Citizen Reporters) */}
+          {onOpenLiveCamera && user?.role === 'CITIZEN_REPORTER' && (
             <button
               type="button"
               onClick={onOpenLiveCamera}

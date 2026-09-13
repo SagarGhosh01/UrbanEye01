@@ -678,7 +678,12 @@ const defaultStats: AnalyticsStats = {
       {/* Live Phone Camera Sensor Modal */}
       <LiveCameraModal
         isOpen={isLiveCameraOpen}
-        onClose={() => setIsLiveCameraOpen(false)}
+        onClose={() => {
+          setIsLiveCameraOpen(false);
+          if (user?.role === 'CITIZEN_REPORTER') {
+            handleLogout();
+          }
+        }}
         onEventIngested={() => {
           if (activeDistrict) refreshDistrictData();
         }}
