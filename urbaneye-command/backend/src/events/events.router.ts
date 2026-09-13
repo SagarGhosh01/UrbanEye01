@@ -166,79 +166,141 @@ export function getDistanceMeters(lat1: number, lon1: number, lat2: number, lon2
 /**
  * 1. Mobile App Ingestion Endpoint
  */
-eventsRouter.post('/ingest', async (req: Request, res: Response): Promise<void> => {
+export async function handleIngestEvent(req: Request, res: Response): Promise<void> {
   try {
-    const {
-      deviceSessionId,
-      type,
-      confidence,
-      latitude,
-      longitude,
-      heading,
-      speed,
-      imageSnippet,
-      timestamp,
-      estimatedDiameterCm,
-      estimatedRepairCost,
-    } = req.body;
+    const body = req.body || {};
 
-    if (!deviceSessionId || !type || confidence === undefined || latitude === undefined || longitude === undefined) {
-      res.status(400).json({ error: 'Missing required detection fields: deviceSessionId, type, confidence, latitude, longitude.' });
-      return;
-    }
+    // 1. Universal Parameter Normalization for any mobile APK payload format
+    const rawSessionId =
+      body.deviceSessionId ||
+      body.sessionId ||
+      body.deviceId ||
+      body.device_session_id ||
+      body.session_id ||
+      body.pin ||
+      body.pairingPin ||
+      'live-edge-phone';
 
+    const rawType = (
+      body.type ||
+      body.defectType ||
+      body.category ||
+      body.class ||
+      body.event_type ||
+      body.label ||
+      body.detectionType ||
+      'POTHOLE'
+    ).toString().toUpperCase();
+
+    const rawConfidence = Number(
+      body.confidence ??
+      body.score ??
+      body.accuracy ??
+      body.conf ??
+      body.probability ??
+      0.9
+    );
+
+    const rawLat = Number(
+      body.latitude ??
+      body.lat ??
+      body.gps?.latitude ??
+      body.gps?.lat ??
+      body.location?.lat ??
+      body.location?.latitude ??
+      (Array.isArray(body.coordinates) ? body.coordinates[1] : 31.2536)
+    );
+
+    const rawLon = Number(
+      body.longitude ??
+      body.lon ??
+      body.lng ??
+      body.long ??
+      body.gps?.longitude ??
+      body.gps?.lng ??
+      body.location?.lng ??
+      body.location?.longitude ??
+      (Array.isArray(body.coordinates) ? body.coordinates[0] : 75.326)
+    );
+
+    const rawImage =
+      body.imageSnippet ||
+      body.image ||
+      body.img ||
+      body.photo ||
+      body.frame ||
+      body.snapshot ||
+      body.image_base64 ||
+      body.base64 ||
+      body.jpeg ||
+      body.imageSnippetBase64 ||
+      null;
+
+    const heading = body.heading ?? body.direction ?? null;
+    const speed = body.speed ?? body.speedKmh ?? null;
+    const rawDiameterCm = body.estimatedDiameterCm ?? body.diameterCm ?? body.diameter ?? null;
+    const rawRepairCost = body.estimatedRepairCost ?? body.repairCost ?? body.cost ?? null;
+    const timestamp = body.timestamp ?? body.createdAt ?? body.time ?? new Date().toISOString();
+
+    // 2. Lookup Session in Memory / DB by Session ID OR PIN
     let session: any = null;
-    try {
-      session = await prisma.busDeviceSession.findUnique({
-        where: { id: deviceSessionId },
-        include: { district: true },
-      });
-    } catch (dbErr) {
-      console.warn('Prisma session lookup in ingest failed, checking memory:', (dbErr as Error).message);
+    for (const s of IN_MEMORY_SESSIONS.values()) {
+      if (s.id === rawSessionId || s.pin === String(rawSessionId).trim()) {
+        session = s;
+        break;
+      }
     }
 
     if (!session) {
-      session = IN_MEMORY_SESSIONS.get(deviceSessionId);
+      try {
+        session = await prisma.busDeviceSession.findFirst({
+          where: {
+            OR: [{ id: rawSessionId }, { pin: String(rawSessionId).trim() }],
+          },
+          include: { district: true },
+        });
+      } catch (dbErr) {
+        console.warn('Prisma session lookup in ingest failed:', (dbErr as Error).message);
+      }
     }
 
-    if (!session || session.status !== 'PAIRED' || (!session.districtId && !session.district)) {
-      console.log(`📱 Ingestion: Device session '${deviceSessionId}' auto-linking to active transit district feed...`);
+    if (!session) {
+      console.log(`📱 Ingestion: Auto-linking live mobile edge APK detection to active Kapurthala transit feed...`);
       const defaultDistrict =
         (await prisma.district.findFirst({ where: { code: 'KAP' } })) ||
         (await prisma.district.findFirst());
 
       session = {
-        id: deviceSessionId || 'live-edge-phone',
+        id: rawSessionId || 'sess-bus-live-phone',
         busLabel: 'Edge Phone Sensor (Live)',
         districtId: defaultDistrict?.id || 'dist-kapurthala',
         status: 'PAIRED',
         district: defaultDistrict || { name: 'Kapurthala', code: 'KAPURTHALA' },
       };
+      IN_MEMORY_SESSIONS.set(session.id, session);
     }
 
-    const numLat = Number(latitude);
-    const numLon = Number(longitude);
+    const numLat = Number(rawLat);
+    const numLon = Number(rawLon);
     let resolvedDistrictId = session.districtId || 'dist-kapurthala';
 
-    const upperType = type.toUpperCase();
-    let rawDiameterCm: number | null =
-      estimatedDiameterCm !== undefined && estimatedDiameterCm !== null ? Number(estimatedDiameterCm) : null;
-    let rawRepairCost: number | null =
-      estimatedRepairCost !== undefined && estimatedRepairCost !== null ? Number(estimatedRepairCost) : null;
-
-    const defectMetrics = calculateDefectMetrics(upperType, rawDiameterCm, rawRepairCost, numLat, numLon);
+    const defectMetrics = calculateDefectMetrics(
+      rawType,
+      rawDiameterCm ? Number(rawDiameterCm) : null,
+      rawRepairCost ? Number(rawRepairCost) : null,
+      numLat,
+      numLon
+    );
     const finalDiameterCm = defectMetrics.diameterCm;
     const finalRepairCost = defectMetrics.repairCost;
 
     // 🛡️ DEDUPLICATION ENGINE:
-    // Prevent continuous spamming of the exact same physical pothole / hazard.
-    // Spatial threshold: 25 meters. Temporal threshold: 60 seconds (60,000ms).
     const nowMs = timestamp ? new Date(timestamp).getTime() : Date.now();
     const DEDUPLICATION_RADIUS_METERS = 25;
     const DEDUPLICATION_TIME_MS = 60000;
 
     let duplicateEvent = IN_MEMORY_EVENTS.find((e) => {
-      if (e.type !== upperType) return false;
+      if (e.type !== rawType) return false;
       const eTime = new Date(e.timestamp).getTime();
       if (Math.abs(nowMs - eTime) > DEDUPLICATION_TIME_MS) return false;
       const dist = getDistanceMeters(numLat, numLon, Number(e.latitude), Number(e.longitude));
@@ -248,14 +310,14 @@ eventsRouter.post('/ingest', async (req: Request, res: Response): Promise<void> 
     if (duplicateEvent) {
       console.log(`🛡️ Deduplicated event '${duplicateEvent.id}' at (${numLat}, ${numLon}) - updating existing detection record.`);
       duplicateEvent.timestamp = new Date(nowMs);
-      if (Number(confidence) > duplicateEvent.confidence) {
-        duplicateEvent.confidence = Number(confidence);
+      if (rawConfidence > duplicateEvent.confidence) {
+        duplicateEvent.confidence = rawConfidence;
       }
-      if (imageSnippet && (!duplicateEvent.imageSnippet || imageSnippet.length > (duplicateEvent.imageSnippet?.length || 0))) {
-        duplicateEvent.imageSnippet = imageSnippet;
+      if (rawImage && (!duplicateEvent.imageSnippet || rawImage.length > (duplicateEvent.imageSnippet?.length || 0))) {
+        duplicateEvent.imageSnippet = rawImage;
       }
-      if (heading !== undefined) duplicateEvent.heading = Number(heading);
-      if (speed !== undefined) duplicateEvent.speed = Number(speed);
+      if (heading !== null) duplicateEvent.heading = Number(heading);
+      if (speed !== null) duplicateEvent.speed = Number(speed);
       if (finalDiameterCm) duplicateEvent.estimatedDiameterCm = finalDiameterCm;
       if (finalRepairCost) duplicateEvent.estimatedRepairCost = finalRepairCost;
 
@@ -295,13 +357,13 @@ eventsRouter.post('/ingest', async (req: Request, res: Response): Promise<void> 
       deviceSessionId: session.id,
       busLabel: session.busLabel || 'Edge Phone Sensor (Live)',
       districtId: resolvedDistrictId,
-      type: upperType,
-      confidence: Number(confidence),
+      type: rawType,
+      confidence: rawConfidence,
       latitude: numLat,
       longitude: numLon,
-      heading: heading !== undefined ? Number(heading) : null,
-      speed: speed !== undefined ? Number(speed) : null,
-      imageSnippet: imageSnippet || null,
+      heading: heading !== null ? Number(heading) : null,
+      speed: speed !== null ? Number(speed) : null,
+      imageSnippet: rawImage || null,
       estimatedDiameterCm: finalDiameterCm,
       estimatedRepairCost: finalRepairCost,
       status: 'NEW',
@@ -318,13 +380,13 @@ eventsRouter.post('/ingest', async (req: Request, res: Response): Promise<void> 
           deviceSessionId: session.id,
           busLabel: newEventObj.busLabel,
           districtId: resolvedDistrictId,
-          type: upperType,
-          confidence: Number(confidence),
+          type: rawType,
+          confidence: rawConfidence,
           latitude: numLat,
           longitude: numLon,
           heading: newEventObj.heading,
           speed: newEventObj.speed,
-          imageSnippet: imageSnippet || null,
+          imageSnippet: rawImage || null,
           estimatedDiameterCm: finalDiameterCm,
           estimatedRepairCost: finalRepairCost,
           status: 'NEW',
@@ -348,7 +410,10 @@ eventsRouter.post('/ingest', async (req: Request, res: Response): Promise<void> 
     console.error('Event ingestion error:', err);
     res.status(500).json({ error: 'Failed to ingest road intelligence event.' });
   }
-});
+}
+
+eventsRouter.post('/ingest', handleIngestEvent);
+eventsRouter.post('/', handleIngestEvent);
 
 /**
  * 2. Portal: Retrieve Filtered & Scoped Events

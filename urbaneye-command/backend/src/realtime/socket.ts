@@ -77,6 +77,8 @@ export function emitNewRoadEvent(event: any): void {
 
 export function emitRoadEventUpdated(event: any): void {
   if (!io) return;
+  io.emit('event:updated', event);
+  io.emit('detection:updated', event);
   io.to(`district:${event.districtId}`).emit('event:updated', event);
   io.to(`district:${String(event.districtId).toLowerCase()}`).emit('event:updated', event);
   if (event.district?.code) {
@@ -90,6 +92,7 @@ export function emitRoadEventUpdated(event: any): void {
 
 export function emitRoadEventDeleted(eventId: string, districtId: string, stateId?: string): void {
   if (!io) return;
+  io.emit('event:deleted', { id: eventId, districtId });
   io.to(`district:${districtId}`).emit('event:deleted', { id: eventId, districtId });
   io.to(`district:${String(districtId).toLowerCase()}`).emit('event:deleted', { id: eventId, districtId });
   if (stateId) {
@@ -100,6 +103,14 @@ export function emitRoadEventDeleted(eventId: string, districtId: string, stateI
 
 export function emitPairingConfirmed(session: any): void {
   if (!io) return;
+  io.emit('pairing:confirmed', {
+    status: 'PAIRED',
+    deviceSessionId: session.id,
+    busLabel: session.busLabel,
+    routeTag: session.routeTag,
+    districtId: session.districtId,
+    districtName: session.district?.name,
+  });
   io.to(`session:${session.id}`).emit('pairing:confirmed', {
     status: 'PAIRED',
     deviceSessionId: session.id,
