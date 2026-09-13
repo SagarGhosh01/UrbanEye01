@@ -1,8 +1,9 @@
 import { Router } from 'express';
-import { prisma } from '../prisma';
-import { io } from '../realtime/socket';
+import { prisma } from '../prisma.js';
+import { getIO } from '../realtime/socket.js';
 
 export const safetyRouter = Router();
+
 
 const DEFAULT_SAFETY_ZONES = [
   {
@@ -103,9 +104,11 @@ safetyRouter.get('/stats', async (req, res) => {
 safetyRouter.post('/intervene', async (req, res) => {
   const { zoneId, actionType, notes } = req.body;
 
-  if (io) {
-    io.emit('vru:risk_alert', { zoneId, actionType, notes, dispatchedAt: new Date().toISOString() });
+  const socketIO = getIO();
+  if (socketIO) {
+    socketIO.emit('vru:risk_alert', { zoneId, actionType, notes, dispatchedAt: new Date().toISOString() });
   }
+
 
   res.json({
     status: 'SUCCESS',

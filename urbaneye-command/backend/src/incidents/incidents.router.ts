@@ -1,8 +1,9 @@
 import { Router } from 'express';
-import { prisma } from '../prisma';
-import { io } from '../realtime/socket';
+import { prisma } from '../prisma.js';
+import { getIO } from '../realtime/socket.js';
 
 export const incidentsRouter = Router();
+
 
 const DEFAULT_INCIDENTS = [
   {
@@ -161,9 +162,11 @@ incidentsRouter.patch('/:id/status', async (req, res) => {
     }
 
     // Broadcast Socket.IO update
-    if (io) {
-      io.emit('incident:status_change', { id, status, authorityNotes });
+    const socketIO = getIO();
+    if (socketIO) {
+      socketIO.emit('incident:status_change', { id, status, authorityNotes });
     }
+
 
     res.json({
       status: 'SUCCESS',

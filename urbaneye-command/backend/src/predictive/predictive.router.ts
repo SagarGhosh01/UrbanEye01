@@ -1,8 +1,9 @@
 import { Router } from 'express';
-import { prisma } from '../prisma';
-import { io } from '../realtime/socket';
+import { prisma } from '../prisma.js';
+import { getIO } from '../realtime/socket.js';
 
 export const predictiveRouter = Router();
+
 
 const DEFAULT_HOTSPOTS = [
   {
@@ -187,8 +188,9 @@ predictiveRouter.post('/recommendations/:id/execute', async (req, res) => {
     rec.status = 'DISPATCHED';
   }
 
-  if (io) {
-    io.emit('recommendation:new', { id, status: 'DISPATCHED', executedAt: new Date().toISOString() });
+  const socketIO = getIO();
+  if (socketIO) {
+    socketIO.emit('recommendation:new', { id, status: 'DISPATCHED', executedAt: new Date().toISOString() });
   }
 
   res.json({
