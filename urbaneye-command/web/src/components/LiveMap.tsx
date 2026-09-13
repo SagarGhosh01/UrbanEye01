@@ -4,6 +4,7 @@ import { RoadEvent, EventStatus } from '../types';
 import { ChevronUp, ChevronDown, Layers } from 'lucide-react';
 import { getCategoryPriority, MAX_CATEGORY_PRIORITY } from '../constants/detectionCategories';
 import { getPotholeCostDetails } from '../utils/potholeEstimates';
+import { resolveImageSrc } from '../utils/imageUtils';
 import { useTheme } from '../contexts/ThemeContext';
 
 interface LiveMapProps {
@@ -248,7 +249,7 @@ export const LiveMap: React.FC<LiveMapProps> = ({
           ${
             event.imageSnippet
               ? `<div style="margin-bottom: 8px; border-radius: 4px; overflow: hidden; border: 1px solid #e2e8f0; max-height: 100px;">
-                  <img src="${event.imageSnippet.startsWith('data:') ? event.imageSnippet : `data:image/jpeg;base64,${event.imageSnippet}`}" alt="Camera snippet" style="width: 100%; height: 95px; object-fit: cover; display: block;" />
+                  <img src="${resolveImageSrc(event.imageSnippet)}" alt="Camera snippet" style="width: 100%; height: 95px; object-fit: cover; display: block;" />
                 </div>`
               : ''
           }

@@ -4,6 +4,7 @@ import { Eye, CheckCircle2, Wrench, AlertTriangle, Image as ImageIcon, Trash2, M
 import { useTheme } from '../contexts/ThemeContext';
 import { getCategoryColor, getCategoryDisplayName } from '../constants/detectionCategories';
 import { getPotholeCostDetails } from '../utils/potholeEstimates';
+import { resolveImageSrc } from '../utils/imageUtils';
 
 interface DefectTableProps {
   events: RoadEvent[];
@@ -239,7 +240,7 @@ export const DefectTable: React.FC<DefectTableProps> = ({
                     className="w-16 h-14 rounded-lg overflow-hidden border border-slate-600 bg-slate-800 shrink-0 relative group"
                   >
                     <img
-                      src={event.imageSnippet.startsWith('data:') ? event.imageSnippet : `data:image/jpeg;base64,${event.imageSnippet}`}
+                      src={resolveImageSrc(event.imageSnippet) || ''}
                       alt="Crop"
                       className="w-full h-full object-cover"
                     />
@@ -442,7 +443,7 @@ export const DefectTable: React.FC<DefectTableProps> = ({
                         className="relative group w-14 h-10 rounded border border-slate-600/50 overflow-hidden bg-slate-700 block"
                       >
                         <img
-                          src={event.imageSnippet.startsWith('data:') ? event.imageSnippet : `data:image/jpeg;base64,${event.imageSnippet}`}
+                          src={resolveImageSrc(event.imageSnippet) || ''}
                           alt="Crop"
                           className="w-full h-full object-cover group-hover:scale-105 transition"
                         />
@@ -691,7 +692,7 @@ export const DefectTable: React.FC<DefectTableProps> = ({
               <button onClick={() => setPreviewImage(null)} className={`text-base font-bold min-w-[32px] min-h-[32px] flex items-center justify-center ${isDark ? 'text-slate-400 hover:text-white' : 'text-slate-400 hover:text-slate-800'}`}>✕</button>
             </div>
             <img
-              src={previewImage.startsWith('data:') ? previewImage : `data:image/jpeg;base64,${previewImage}`}
+              src={resolveImageSrc(previewImage) || ''}
               alt="Road Defect Capture"
               className="w-full max-h-[70vh] object-contain rounded-lg"
             />

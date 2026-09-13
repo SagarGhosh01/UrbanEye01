@@ -16,6 +16,7 @@ import {
   Coins,
   Hammer,
 } from 'lucide-react';
+import { resolveImageSrc } from '../utils/imageUtils';
 import { getPotholeCostDetails } from '../utils/potholeEstimates';
 
 interface DefectDetailModalProps {
@@ -117,11 +118,7 @@ export const DefectDetailModal: React.FC<DefectDetailModalProps> = ({
     }
   };
 
-  const imageSrc = event.imageSnippet
-    ? event.imageSnippet.startsWith('data:')
-      ? event.imageSnippet
-      : `data:image/jpeg;base64,${event.imageSnippet}`
-    : null;
+  const imageSrc = resolveImageSrc(event.imageSnippet);
 
   return (
     <div className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-900/70 backdrop-blur-sm animate-fade-in">
