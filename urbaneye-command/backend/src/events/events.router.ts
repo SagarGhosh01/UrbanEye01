@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { prisma } from '../prisma.js';
 import { requireAuth, AuthenticatedRequest, enforceDistrictScope } from '../middleware/auth.middleware.js';
-import { emitNewRoadEvent, emitRoadEventUpdated, emitRoadEventDeleted } from '../realtime/socket.js';
+import { emitNewRoadEvent, emitRoadEventUpdated, emitRoadEventDeleted, getIO } from '../realtime/socket.js';
 import { IN_MEMORY_SESSIONS } from '../pairing/pairing.router.js';
 
 export const eventsRouter = Router();
@@ -666,6 +666,106 @@ eventsRouter.get(
     } catch (err: any) {
       console.error('Event stats error:', err);
       res.status(500).json({ error: 'Failed to compute road intelligence stats.' });
+    }
+  }
+);
+
+/**
+ * 5. Purge / Clear All Events for District or State (Clear Test Detections)
+ */
+eventsRouter.delete(
+  '/purge',
+  requireAuth,
+  async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+    try {
+      const { districtId } = req.query;
+      const targetDistrictId = (districtId as string) || req.scopedDistrictId;
+
+      let deletedCount = 0;
+
+      // 1. Clear in-memory store matching district or all
+      const initialMemLen = IN_MEMORY_EVENTS.length;
+      if (targetDistrictId) {
+        for (let i = IN_MEMORY_EVENTS.length - 1; i >= 0; i--) {
+          if (
+            IN_MEMORY_EVENTS[i].districtId === targetDistrictId ||
+            IN_MEMORY_EVENTS[i].districtId === 'dist-kapurthala' ||
+            targetDistrictId === 'dist-kapurthala'
+          ) {
+            IN_MEMORY_EVENTS.splice(i, 1);
+            deletedCount++;
+          }
+        }
+      } else {
+        deletedCount = IN_MEMORY_EVENTS.length;
+        IN_MEMORY_EVENTS.length = 0;
+      }
+
+      // 2. Clear Database records
+      try {
+        const dbResult = await prisma.roadEvent.deleteMany({
+          where: targetDistrictId ? { districtId: targetDistrictId } : {},
+        });
+        deletedCount += dbResult.count;
+      } catch (dbErr) {
+        console.warn('Prisma roadEvent.deleteMany fallback notice:', (dbErr as Error).message);
+      }
+
+      // Broadcast purge socket signal so connected web dashboards reset list immediately
+      const socketIO = getIO();
+      if (socketIO) {
+        socketIO.emit('events:purged', { districtId: targetDistrictId });
+      }
+
+      res.json({
+        success: true,
+        deletedCount,
+        message: `Successfully purged ${deletedCount} recorded edge defect detections. Feed reset cleanly.`,
+      });
+    } catch (err: any) {
+      console.error('Purge events error:', err);
+      res.status(500).json({ error: 'Failed to purge defect events.' });
+    }
+  }
+);
+
+/**
+ * 6. Delete Individual Event
+ */
+eventsRouter.delete(
+  '/:id',
+  requireAuth,
+  async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+    try {
+      const { id } = req.params;
+
+      // 1. Remove from memory store
+      const memIndex = IN_MEMORY_EVENTS.findIndex((e) => e.id === id);
+      let targetDistrictId = 'dist-kapurthala';
+      if (memIndex !== -1) {
+        targetDistrictId = IN_MEMORY_EVENTS[memIndex].districtId || targetDistrictId;
+        IN_MEMORY_EVENTS.splice(memIndex, 1);
+      }
+
+      // 2. Delete from Database
+      try {
+        const dbEvent = await prisma.roadEvent.delete({
+          where: { id },
+        });
+        targetDistrictId = dbEvent.districtId || targetDistrictId;
+      } catch (dbErr) {
+        console.warn('Prisma roadEvent.delete fallback notice:', (dbErr as Error).message);
+      }
+
+      emitRoadEventDeleted(id, targetDistrictId);
+
+      res.json({
+        success: true,
+        message: `Road defect event #${id} deleted successfully.`,
+      });
+    } catch (err: any) {
+      console.error('Delete event error:', err);
+      res.status(500).json({ error: 'Failed to delete road event.' });
     }
   }
 );
