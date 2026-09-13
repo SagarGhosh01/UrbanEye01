@@ -5,59 +5,7 @@ import { getIO } from '../realtime/socket.js';
 export const safetyRouter = Router();
 
 
-const DEFAULT_SAFETY_ZONES = [
-  {
-    id: 'sz-01',
-    zoneName: 'St. Francis School Zone — Kapurthala',
-    category: 'SCHOOL_ZONE',
-    riskScore: 84.5,
-    riskLevel: 'CRITICAL',
-    latitude: 31.380,
-    longitude: 75.390,
-    radiusMeters: 200,
-    pedestrianCount: 142,
-    nearMissCount: 6,
-    avgSpeedKmh: 42,
-    suggestedIntervention: 'Deploy Traffic Warden & Speed Reduction Warning Signal',
-    districtId: 'dist-kapurthala',
-    updatedAt: new Date().toISOString(),
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: 'sz-02',
-    zoneName: 'Civil Hospital Main Crossing',
-    category: 'PEDESTRIAN_CROSSING',
-    riskScore: 68.0,
-    riskLevel: 'HIGH',
-    latitude: 31.372,
-    longitude: 75.380,
-    radiusMeters: 150,
-    pedestrianCount: 98,
-    nearMissCount: 3,
-    avgSpeedKmh: 36,
-    suggestedIntervention: 'Extend Pedestrian Crossing Phase by +10 seconds',
-    districtId: 'dist-kapurthala',
-    updatedAt: new Date().toISOString(),
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: 'sz-03',
-    zoneName: 'Central Bus Terminal Plaza',
-    category: 'BUS_STOP_CROWD',
-    riskScore: 45.2,
-    riskLevel: 'MODERATE',
-    latitude: 31.365,
-    longitude: 75.370,
-    radiusMeters: 250,
-    pedestrianCount: 210,
-    nearMissCount: 1,
-    avgSpeedKmh: 24,
-    suggestedIntervention: 'Implement Bus Lane Barricade & Crowd Channelization',
-    districtId: 'dist-kapurthala',
-    updatedAt: new Date().toISOString(),
-    createdAt: new Date().toISOString(),
-  },
-];
+const DEFAULT_SAFETY_ZONES: any[] = [];
 
 // GET /api/safety/zones
 safetyRouter.get('/zones', async (req, res) => {
