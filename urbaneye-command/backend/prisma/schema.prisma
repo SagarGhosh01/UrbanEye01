@@ -75,7 +75,7 @@ model RoadEvent {
   busLabel         String
   districtId       String
   district         District          @relation(fields: [districtId], references: [id], onDelete: Cascade)
-  type             String            // POTHOLE | ROAD_CRACK | SURFACE_DAMAGE | WATERLOGGING | VEHICLE_FLOW
+  type             String            // POTHOLE | LONGITUDINAL_CRACK | ALLIGATOR_CRACK | SURFACE_DAMAGE | WATERLOGGING | MISSING_DIVIDER | FADED_ZEBRA_CROSSING | DAMAGED_SIGNBOARD | DEBRIS | VEHICLE_ANOMALY | TRAFFIC_CONGESTION
   confidence       Float
   latitude         Float
   longitude        Float
@@ -83,7 +83,15 @@ model RoadEvent {
   speed            Float?
   imageSnippet        String?           // base64 encoded compact JPEG cropped from edge camera
   estimatedDiameterCm Float?            // Estimated defect/cavity diameter in cm
-  estimatedRepairCost Float?            // Estimated PWD/NHAI repair cost in INR
+  widthM              Float?            // Physical width in meters (e.g., 0.82)
+  lengthM             Float?            // Physical length in meters (e.g., 1.34)
+  depthCm             Float?            // Physical depth in centimeters (e.g., 6.8)
+  areaM2              Float?            // Physical surface area in square meters (e.g., 1.09)
+  severity            String?           @default("HIGH") // LOW | MEDIUM | HIGH | CRITICAL
+  severityScore       Float?            @default(75.0)   // 0 - 100 severity score
+  deteriorationPct    Float?            // Percentage deterioration for markings/infrastructure
+  hazardSubCategory   String?           // Sub-class (e.g., alligator_crack, missing_divider, stop_sign)
+  estimatedRepairCost Float?            // Calculated via PWD/NHAI Schedule of Rates (SOR) Cost Engine
   status              String            @default("NEW") // NEW | REVIEWED | ASSIGNED_FOR_REPAIR | RESOLVED
   reviewedByUserId    String?
   reviewedByUser      User?             @relation("UserReviewedEvents", fields: [reviewedByUserId], references: [id])

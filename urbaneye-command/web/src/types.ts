@@ -107,6 +107,14 @@ export interface RoadEvent {
   speed?: number | null;
   imageSnippet?: string | null;
   estimatedDiameterCm?: number | null;
+  widthM?: number | null;
+  lengthM?: number | null;
+  depthCm?: number | null;
+  areaM2?: number | null;
+  severity?: 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW' | null;
+  severityScore?: number | null;
+  deteriorationPct?: number | null;
+  hazardSubCategory?: string | null;
   estimatedRepairCost?: number | null;
   status: EventStatus;
   reviewedByUserId?: string | null;

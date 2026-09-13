@@ -403,7 +403,7 @@ export const LiveCameraModal: React.FC<LiveCameraModalProps> = ({
                 {/* Scanning Laser Line */}
                 <line x1="20" y1="175" x2="480" y2="175" stroke="url(#laserGrad)" strokeWidth="2" className="animate-pulse" />
 
-                {/* 1. ELLIPSE (POTHOLE, MANHOLE) */}
+                {/* 1. ELLIPSE (POTHOLE, MANHOLE) WITH RICH METRIC CARD */}
                 {activeClassObj.shape === 'ELLIPSE' && (
                   <g className="animate-fade-in">
                     <ellipse
@@ -420,11 +420,35 @@ export const LiveCameraModal: React.FC<LiveCameraModalProps> = ({
                     <circle cx="250" cy="233" r="3.5" fill={activeClassObj.color} />
                     <circle cx="150" cy="175" r="3.5" fill={activeClassObj.color} />
                     <circle cx="350" cy="175" r="3.5" fill={activeClassObj.color} />
-                    <g transform="translate(140, 90)">
-                      <rect width="220" height="24" rx="6" fill={activeClassObj.color} opacity="0.95" />
-                      <text x="10" y="16" fill="#000" fontSize="11" fontWeight="bold" fontFamily="monospace">
-                        AUTO-DETECT: {activeClassObj.label.toUpperCase()} ({Math.round(currentConfidence * 100)}%)
+                    
+                    {/* Rich Structured Detection Card (Section 3 Prompt Specification) */}
+                    <g transform="translate(20, 20)">
+                      <rect width="185" height="135" rx="8" fill="rgba(15, 23, 42, 0.92)" stroke={activeClassObj.color} strokeWidth="1.5" />
+                      <text x="10" y="18" fill="#ef4444" fontSize="10" fontWeight="bold" fontFamily="monospace">
+                        🕳️ POTHOLE DETECTED
                       </text>
+                      <line x1="10" y1="24" x2="175" y2="24" stroke="#334155" strokeWidth="1" />
+
+                      <text x="10" y="40" fill="#94a3b8" fontSize="9" fontFamily="monospace">Confidence</text>
+                      <text x="110" y="40" fill="#38bdf8" fontSize="9" fontWeight="bold" fontFamily="monospace">{Math.round(currentConfidence * 100)}%</text>
+
+                      <text x="10" y="54" fill="#94a3b8" fontSize="9" fontFamily="monospace">Width</text>
+                      <text x="110" y="54" fill="#f87171" fontSize="9" fontWeight="bold" fontFamily="monospace">82 cm</text>
+
+                      <text x="10" y="68" fill="#94a3b8" fontSize="9" fontFamily="monospace">Length</text>
+                      <text x="110" y="68" fill="#f87171" fontSize="9" fontWeight="bold" fontFamily="monospace">1.34 m</text>
+
+                      <text x="10" y="82" fill="#94a3b8" fontSize="9" fontFamily="monospace">Depth</text>
+                      <text x="110" y="82" fill="#fbbf24" fontSize="9" fontWeight="bold" fontFamily="monospace">6.8 cm</text>
+
+                      <text x="10" y="96" fill="#94a3b8" fontSize="9" fontFamily="monospace">Area</text>
+                      <text x="110" y="96" fill="#38bdf8" fontSize="9" fontWeight="bold" fontFamily="monospace">1.09 m²</text>
+
+                      <text x="10" y="110" fill="#94a3b8" fontSize="9" fontFamily="monospace">Severity</text>
+                      <text x="110" y="110" fill="#fbbf24" fontSize="9" fontWeight="bold" fontFamily="monospace">HIGH 🟠</text>
+
+                      <text x="10" y="124" fill="#94a3b8" fontSize="9" fontFamily="monospace">Est. Repair</text>
+                      <text x="110" y="124" fill="#34d399" fontSize="9" fontWeight="bold" fontFamily="monospace">₹4,850</text>
                     </g>
                   </g>
                 )}

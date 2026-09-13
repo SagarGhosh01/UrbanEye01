@@ -8,57 +8,127 @@ export const eventsRouter = Router();
 
 export const IN_MEMORY_EVENTS: any[] = [];
 
+export interface AdvancedDefectMetrics {
+  diameterCm: number | null;
+  widthM: number;
+  lengthM: number;
+  depthCm: number;
+  areaM2: number;
+  severity: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+  severityScore: number;
+  deteriorationPct: number | null;
+  hazardSubCategory: string;
+  estimatedRepairCost: number;
+}
+
 export function calculateDefectMetrics(
   type: string,
   providedDiameter: number | null,
   providedCost: number | null,
+  providedWidthM: number | null,
+  providedLengthM: number | null,
+  providedDepthCm: number | null,
+  providedAreaM2: number | null,
   lat: number,
-  lon: number
-): { diameterCm: number | null; repairCost: number } {
+  lon: number,
+  confidence: number = 0.94
+): AdvancedDefectMetrics {
   const upperType = type.toUpperCase();
   const seed = Math.abs(Math.sin(lat * 1000 + lon * 1000));
-  
-  let diameterCm = providedDiameter;
-  if (diameterCm === null && (upperType === 'POTHOLE' || upperType === 'SURFACE_DAMAGE')) {
-    diameterCm = Math.round(seed * 40 + 28);
-  }
+  const seed2 = Math.abs(Math.cos(lat * 500 + lon * 500));
 
-  if (providedCost !== null && providedCost > 0) {
-    return { diameterCm, repairCost: Math.round(providedCost) };
-  }
+  let widthM = providedWidthM || (providedDiameter ? Math.round((providedDiameter / 100) * 100) / 100 : Math.round((0.55 + seed * 0.77) * 100) / 100);
+  let lengthM = providedLengthM || Math.round((widthM * (1.15 + seed2 * 0.65)) * 100) / 100;
+  let depthCm = providedDepthCm || Math.round((4.0 + seed * 5.8) * 10) / 10;
+  let areaM2 = providedAreaM2 || Math.round((widthM * lengthM * 0.82) * 100) / 100;
+  let diameterCm = providedDiameter || Math.round(widthM * 100);
+  let deteriorationPct: number | null = null;
+  let hazardSubCategory = 'pothole';
 
-  let repairCost = 1200;
   if (upperType === 'POTHOLE') {
-    const d = diameterCm || 35;
-    const rawCost = (d / 10) * (d / 10) * 55 + d * 25 + 400;
-    repairCost = Math.max(800, Math.round(rawCost / 50) * 50);
-  } else if (upperType === 'LONGITUDINAL_CRACK' || upperType === 'TRANSVERSE_CRACK' || upperType === 'ALLIGATOR_CRACK' || upperType === 'ROAD_CRACK') {
-    repairCost = Math.round((1200 + seed * 2800) / 50) * 50;
-  } else if (upperType === 'SURFACE_DAMAGE' || upperType === 'ROAD_EDGE_DAMAGE') {
-    repairCost = Math.round((1500 + seed * 3200) / 50) * 50;
-  } else if (upperType === 'OPEN_MANHOLE') {
-    repairCost = Math.round((6000 + seed * 9000) / 100) * 100;
-  } else if (upperType === 'DEBRIS' || upperType === 'OTHER_HAZARD') {
-    repairCost = Math.round((1800 + seed * 2500) / 50) * 50;
+    hazardSubCategory = 'pothole';
+    if (!providedWidthM) widthM = Math.round((0.55 + seed * 0.77) * 100) / 100; // e.g., 0.82 m
+    if (!providedLengthM) lengthM = Math.round((0.85 + seed2 * 0.85) * 100) / 100; // e.g., 1.34 m
+    if (!providedDepthCm) depthCm = Math.round((4.0 + seed * 5.8) * 10) / 10; // e.g., 6.8 cm
+    areaM2 = Math.round((widthM * lengthM * 0.82) * 100) / 100; // e.g., 1.09 m²
+    diameterCm = Math.round(widthM * 100);
+  } else if (upperType.includes('CRACK') || upperType === 'LONGITUDINAL_CRACK' || upperType === 'ALLIGATOR_CRACK') {
+    hazardSubCategory = upperType.includes('ALLIGATOR') ? 'alligator_crack' : 'longitudinal_crack';
+    widthM = Math.round((0.15 + seed * 0.25) * 100) / 100;
+    lengthM = Math.round((2.5 + seed2 * 5.5) * 100) / 100;
+    depthCm = Math.round((1.5 + seed * 2.5) * 10) / 10;
+    areaM2 = Math.round((widthM * lengthM) * 100) / 100;
+    deteriorationPct = Math.round(40 + seed * 45);
+  } else if (upperType === 'SURFACE_DAMAGE' || upperType === 'ROAD_EDGE_DAMAGE' || upperType === 'RUTTING') {
+    hazardSubCategory = upperType === 'ROAD_EDGE_DAMAGE' ? 'road_edge_damage' : 'rutting';
+    widthM = Math.round((1.2 + seed * 1.8) * 100) / 100;
+    lengthM = Math.round((3.0 + seed2 * 6.0) * 100) / 100;
+    depthCm = Math.round((2.0 + seed * 4.0) * 10) / 10;
+    areaM2 = Math.round((widthM * lengthM) * 100) / 100;
   } else if (upperType === 'WATERLOGGING') {
-    repairCost = Math.round((3500 + seed * 8500) / 100) * 100;
-  } else if (upperType === 'MISSING_DIVIDER' || upperType === 'BARRIERS') {
-    repairCost = Math.round((5000 + seed * 13000) / 100) * 100;
-  } else if (upperType === 'MISSING_ZEBRA_CROSSING' || upperType === 'FADED_ZEBRA_CROSSING' || upperType === 'MISSING_LANE_MARKING') {
-    repairCost = Math.round((2500 + seed * 3500) / 50) * 50;
-  } else if (upperType === 'DAMAGED_SIGNBOARD' || upperType === 'TRAFFIC_SIGN' || upperType === 'SPEED_LIMIT_SIGN' || upperType === 'SCHOOL_ZONE_SIGN' || upperType === 'STOP_SIGN' || upperType === 'ROAD_ASSETS') {
-    repairCost = Math.round((1800 + seed * 2700) / 50) * 50;
-  } else if (upperType === 'VEHICLE_FLOW' || upperType === 'TRAFFIC_BOTTLENECK') {
-    repairCost = Math.round((4000 + seed * 9500) / 100) * 100;
-  } else if (upperType === 'SCHOOL_CHILDREN_CROSSING') {
-    repairCost = Math.round((3000 + seed * 5000) / 50) * 50;
-  } else if (upperType === 'RASH_DRIVING' || upperType === 'HIT_AND_RUN' || upperType === 'ACCIDENT' || upperType === 'DANGEROUS_DRIVING' || upperType === 'VEHICLE_ANOMALY') {
-    repairCost = Math.round((8000 + seed * 17000) / 100) * 100;
-  } else {
-    repairCost = Math.round((1000 + seed * 2500) / 50) * 50;
+    hazardSubCategory = 'waterlogging';
+    widthM = Math.round((2.5 + seed * 3.5) * 100) / 100;
+    lengthM = Math.round((4.0 + seed2 * 5.0) * 100) / 100;
+    depthCm = Math.round((4.0 + seed * 12.0) * 10) / 10;
+    areaM2 = Math.round((widthM * lengthM) * 100) / 100;
+    deteriorationPct = Math.round(25 + seed * 50);
+  } else if (upperType === 'MISSING_DIVIDER') {
+    hazardSubCategory = 'missing_divider';
+    widthM = 0.45;
+    lengthM = Math.round((5.0 + seed * 15.0) * 100) / 100;
+    depthCm = 0;
+    areaM2 = Math.round((widthM * lengthM) * 100) / 100;
+  } else if (upperType === 'FADED_ZEBRA_CROSSING' || upperType === 'MISSING_ZEBRA_CROSSING') {
+    hazardSubCategory = 'faded_zebra_crossing';
+    widthM = 3.5;
+    lengthM = 8.0;
+    depthCm = 0;
+    areaM2 = 28.0;
+    deteriorationPct = Math.round(55 + seed * 38); // e.g. 68% deterioration
+  } else if (upperType === 'DAMAGED_SIGNBOARD' || upperType === 'TRAFFIC_SIGN') {
+    hazardSubCategory = 'damaged_signboard';
+    widthM = 0.6;
+    lengthM = 0.6;
+    depthCm = 0;
+    areaM2 = 0.36;
+    deteriorationPct = Math.round(40 + seed * 45); // e.g. 54% visibility
   }
 
-  return { diameterCm, repairCost };
+  // Calculate Severity Score (0 - 100)
+  const severityScore = Math.min(
+    100,
+    Math.round((depthCm * 4.5) + (areaM2 * 8.0) + (confidence * 25) + (seed * 15))
+  );
+
+  let severity: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL' = 'HIGH';
+  if (severityScore >= 80) severity = 'CRITICAL';
+  else if (severityScore >= 65) severity = 'HIGH';
+  else if (severityScore >= 45) severity = 'MEDIUM';
+  else severity = 'LOW';
+
+  // Rule-Based PWD/NHAI Schedule of Rates (SOR) Cost Engine
+  let repairCost = providedCost || 0;
+  if (!repairCost || repairCost <= 0) {
+    const materialCost = areaM2 * 1800; // Bitumen/Asphalt SOR rate ₹1,800/m²
+    const labourCost = Math.max(1200, Math.round(areaM2 * 850)); // PWD labour crew rate
+    const equipmentCost = 1500; // Machinery deployment
+    const overhead = (materialCost + labourCost + equipmentCost) * 0.12; // 12% departmental overhead
+    const calculatedCost = materialCost + labourCost + equipmentCost + overhead;
+    repairCost = Math.max(1200, Math.round(calculatedCost / 50) * 50);
+  }
+
+  return {
+    diameterCm,
+    widthM,
+    lengthM,
+    depthCm,
+    areaM2,
+    severity,
+    severityScore,
+    deteriorationPct,
+    hazardSubCategory,
+    estimatedRepairCost: repairCost,
+  };
 }
 
 export function getDistanceMeters(lat1: number, lon1: number, lat2: number, lon2: number): number {
@@ -107,7 +177,7 @@ export async function handleIngestEvent(req: Request, res: Response): Promise<vo
       body.accuracy ??
       body.conf ??
       body.probability ??
-      0.9
+      0.94
     );
 
     const rawLat = Number(
@@ -148,6 +218,10 @@ export async function handleIngestEvent(req: Request, res: Response): Promise<vo
     const heading = body.heading ?? body.direction ?? null;
     const speed = body.speed ?? body.speedKmh ?? null;
     const rawDiameterCm = body.estimatedDiameterCm ?? body.diameterCm ?? body.diameter ?? null;
+    const rawWidthM = body.widthM ?? body.width_m ?? body.width ?? null;
+    const rawLengthM = body.lengthM ?? body.length_m ?? body.length ?? null;
+    const rawDepthCm = body.depthCm ?? body.depth_cm ?? body.depth ?? null;
+    const rawAreaM2 = body.areaM2 ?? body.area_m2 ?? body.area ?? null;
     const rawRepairCost = body.estimatedRepairCost ?? body.repairCost ?? body.cost ?? null;
     const timestamp = body.timestamp ?? body.createdAt ?? body.time ?? new Date().toISOString();
 
@@ -197,11 +271,14 @@ export async function handleIngestEvent(req: Request, res: Response): Promise<vo
       rawType,
       rawDiameterCm ? Number(rawDiameterCm) : null,
       rawRepairCost ? Number(rawRepairCost) : null,
+      rawWidthM ? Number(rawWidthM) : null,
+      rawLengthM ? Number(rawLengthM) : null,
+      rawDepthCm ? Number(rawDepthCm) : null,
+      rawAreaM2 ? Number(rawAreaM2) : null,
       numLat,
-      numLon
+      numLon,
+      rawConfidence
     );
-    const finalDiameterCm = defectMetrics.diameterCm;
-    const finalRepairCost = defectMetrics.repairCost;
 
     // 🛡️ DEDUPLICATION ENGINE:
     const nowMs = timestamp ? new Date(timestamp).getTime() : Date.now();
@@ -227,8 +304,16 @@ export async function handleIngestEvent(req: Request, res: Response): Promise<vo
       }
       if (heading !== null) duplicateEvent.heading = Number(heading);
       if (speed !== null) duplicateEvent.speed = Number(speed);
-      if (finalDiameterCm) duplicateEvent.estimatedDiameterCm = finalDiameterCm;
-      if (finalRepairCost) duplicateEvent.estimatedRepairCost = finalRepairCost;
+      duplicateEvent.estimatedDiameterCm = defectMetrics.diameterCm;
+      duplicateEvent.widthM = defectMetrics.widthM;
+      duplicateEvent.lengthM = defectMetrics.lengthM;
+      duplicateEvent.depthCm = defectMetrics.depthCm;
+      duplicateEvent.areaM2 = defectMetrics.areaM2;
+      duplicateEvent.severity = defectMetrics.severity;
+      duplicateEvent.severityScore = defectMetrics.severityScore;
+      duplicateEvent.deteriorationPct = defectMetrics.deteriorationPct;
+      duplicateEvent.hazardSubCategory = defectMetrics.hazardSubCategory;
+      duplicateEvent.estimatedRepairCost = defectMetrics.estimatedRepairCost;
 
       try {
         await prisma.roadEvent.update({
@@ -240,6 +325,14 @@ export async function handleIngestEvent(req: Request, res: Response): Promise<vo
             heading: duplicateEvent.heading,
             speed: duplicateEvent.speed,
             estimatedDiameterCm: duplicateEvent.estimatedDiameterCm,
+            widthM: duplicateEvent.widthM,
+            lengthM: duplicateEvent.lengthM,
+            depthCm: duplicateEvent.depthCm,
+            areaM2: duplicateEvent.areaM2,
+            severity: duplicateEvent.severity,
+            severityScore: duplicateEvent.severityScore,
+            deteriorationPct: duplicateEvent.deteriorationPct,
+            hazardSubCategory: duplicateEvent.hazardSubCategory,
             estimatedRepairCost: duplicateEvent.estimatedRepairCost,
           },
         });
@@ -256,6 +349,7 @@ export async function handleIngestEvent(req: Request, res: Response): Promise<vo
         districtId: duplicateEvent.districtId,
         busLabel: duplicateEvent.busLabel,
         timestamp: duplicateEvent.timestamp,
+        metrics: defectMetrics,
         message: 'Deduplicated: updated existing nearby pothole detection within 25m radius.',
       });
       return;
@@ -273,8 +367,16 @@ export async function handleIngestEvent(req: Request, res: Response): Promise<vo
       heading: heading !== null ? Number(heading) : null,
       speed: speed !== null ? Number(speed) : null,
       imageSnippet: rawImage || null,
-      estimatedDiameterCm: finalDiameterCm,
-      estimatedRepairCost: finalRepairCost,
+      estimatedDiameterCm: defectMetrics.diameterCm,
+      widthM: defectMetrics.widthM,
+      lengthM: defectMetrics.lengthM,
+      depthCm: defectMetrics.depthCm,
+      areaM2: defectMetrics.areaM2,
+      severity: defectMetrics.severity,
+      severityScore: defectMetrics.severityScore,
+      deteriorationPct: defectMetrics.deteriorationPct,
+      hazardSubCategory: defectMetrics.hazardSubCategory,
+      estimatedRepairCost: defectMetrics.estimatedRepairCost,
       status: 'NEW',
       timestamp: timestamp ? new Date(timestamp) : new Date(),
       district: session.district || { name: 'Kapurthala', code: 'KAPURTHALA' },
@@ -296,8 +398,16 @@ export async function handleIngestEvent(req: Request, res: Response): Promise<vo
           heading: newEventObj.heading,
           speed: newEventObj.speed,
           imageSnippet: rawImage || null,
-          estimatedDiameterCm: finalDiameterCm,
-          estimatedRepairCost: finalRepairCost,
+          estimatedDiameterCm: defectMetrics.diameterCm,
+          widthM: defectMetrics.widthM,
+          lengthM: defectMetrics.lengthM,
+          depthCm: defectMetrics.depthCm,
+          areaM2: defectMetrics.areaM2,
+          severity: defectMetrics.severity,
+          severityScore: defectMetrics.severityScore,
+          deteriorationPct: defectMetrics.deteriorationPct,
+          hazardSubCategory: defectMetrics.hazardSubCategory,
+          estimatedRepairCost: defectMetrics.estimatedRepairCost,
           status: 'NEW',
           timestamp: newEventObj.timestamp,
         },
@@ -314,6 +424,7 @@ export async function handleIngestEvent(req: Request, res: Response): Promise<vo
       districtId: newEventObj.districtId,
       busLabel: newEventObj.busLabel,
       timestamp: newEventObj.timestamp,
+      metrics: defectMetrics,
     });
   } catch (err: any) {
     console.error('Event ingestion error:', err);

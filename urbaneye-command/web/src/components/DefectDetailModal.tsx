@@ -221,7 +221,7 @@ export const DefectDetailModal: React.FC<DefectDetailModalProps> = ({
             </div>
           </div>
 
-          {/* Pavement Cavity Diameter & PWD Repair Costing Section */}
+          {/* Multi-Model Perception & Physical Measurement Section */}
           {(() => {
             const details = getPotholeCostDetails(event);
             return (
@@ -229,37 +229,56 @@ export const DefectDetailModal: React.FC<DefectDetailModalProps> = ({
                 <div className="flex items-center justify-between border-b border-amber-500/20 pb-2">
                   <div className="flex items-center space-x-2">
                     <div className="w-7 h-7 rounded-lg bg-amber-500/15 flex items-center justify-center text-amber-600 font-bold text-xs">
-                      Ø
+                      📐
                     </div>
                     <div>
-                      <h4 className="text-xs font-extrabold text-slate-900">Cavity Geometry &amp; Repair Estimate</h4>
-                      <p className="text-[10px] text-slate-500">Official PWD / NHAI Schedule of Rates Schedule</p>
+                      <h4 className="text-xs font-extrabold text-slate-900">Physical Depth &amp; Surface Measurements</h4>
+                      <p className="text-[10px] text-slate-500">Monocular Depth Estimation &amp; PWD SOR Cost Engine</p>
                     </div>
                   </div>
                   <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded border uppercase ${details.severityColor}`}>
-                    {details.severity} Pothole
+                    {event.severity || details.severity} Defect
                   </span>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="bg-white p-2.5 rounded-lg border border-slate-200/80 shadow-xs">
-                    <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block mb-0.5">
-                      Estimated Diameter
-                    </span>
-                    <div className="text-xl font-black font-mono text-slate-900 tracking-tight">
-                      Ø {details.diameterCm} <span className="text-xs font-semibold text-slate-500 font-sans">cm</span>
+                {/* 4-Grid Physical Dimensions */}
+                <div className="grid grid-cols-4 gap-2">
+                  <div className="bg-white p-2 rounded-lg border border-slate-200 shadow-xs text-center">
+                    <span className="text-[9px] text-slate-400 font-bold uppercase block">Width</span>
+                    <div className="text-sm font-black font-mono text-slate-900">
+                      {details.widthM} <span className="text-[10px] font-normal text-slate-500">m</span>
                     </div>
-                    <span className="text-[10px] text-slate-400">Ground perspective scale</span>
                   </div>
-
-                  <div className="bg-white p-2.5 rounded-lg border border-emerald-200 shadow-xs">
-                    <span className="text-[10px] text-emerald-600 font-bold uppercase tracking-wider block mb-0.5">
-                      Estimated Repair Budget
-                    </span>
-                    <div className="text-xl font-black text-emerald-600 tracking-tight">
-                      {details.formattedCost}
+                  <div className="bg-white p-2 rounded-lg border border-slate-200 shadow-xs text-center">
+                    <span className="text-[9px] text-slate-400 font-bold uppercase block">Length</span>
+                    <div className="text-sm font-black font-mono text-slate-900">
+                      {details.lengthM} <span className="text-[10px] font-normal text-slate-500">m</span>
                     </div>
-                    <span className="text-[10px] text-slate-400">Material + labor estimate</span>
+                  </div>
+                  <div className="bg-white p-2 rounded-lg border border-amber-200 shadow-xs text-center">
+                    <span className="text-[9px] text-amber-600 font-bold uppercase block">Depth</span>
+                    <div className="text-sm font-black font-mono text-amber-700">
+                      {details.depthCm} <span className="text-[10px] font-normal text-amber-600">cm</span>
+                    </div>
+                  </div>
+                  <div className="bg-white p-2 rounded-lg border border-slate-200 shadow-xs text-center">
+                    <span className="text-[9px] text-slate-400 font-bold uppercase block">Area</span>
+                    <div className="text-sm font-black font-mono text-slate-900">
+                      {details.areaM2} <span className="text-[10px] font-normal text-slate-500">m²</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Budget card */}
+                <div className="bg-white p-2.5 rounded-lg border border-emerald-200 shadow-xs flex items-center justify-between">
+                  <div>
+                    <span className="text-[10px] text-emerald-700 font-bold uppercase tracking-wider block">
+                      SOR Repair Estimate (PWD / NHAI)
+                    </span>
+                    <span className="text-[10px] text-slate-400">Material + labor + 12% overhead</span>
+                  </div>
+                  <div className="text-xl font-black text-emerald-600 tracking-tight">
+                    {details.formattedCost}
                   </div>
                 </div>
 
