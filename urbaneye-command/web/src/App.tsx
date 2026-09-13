@@ -116,7 +116,13 @@ const defaultStats: AnalyticsStats = {
   useEffect(() => {
     if (!user) return;
 
-    if (user.role === 'DISTRICT_HEAD') {
+    if (user.role === 'CITIZEN_REPORTER') {
+      setViewMode('DISTRICT');
+      if (!activeDistrict || activeDistrict.id !== (user.districtId || 'dist-kapurthala')) {
+        setActiveDistrict(createFallbackDistrict(user));
+      }
+      setIsLiveCameraOpen(true);
+    } else if (user.role === 'DISTRICT_HEAD') {
       setViewMode('DISTRICT');
       if (!activeDistrict || activeDistrict.id !== user.districtId) {
         setActiveDistrict(createFallbackDistrict(user));

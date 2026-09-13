@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Lock, Mail, AlertCircle, Loader2, UserCheck, ArrowLeft, Eye, EyeOff, ShieldCheck, Sparkles, CheckCircle2 } from 'lucide-react';
+import { Lock, Mail, AlertCircle, Loader2, UserCheck, ArrowLeft, Eye, EyeOff, ShieldCheck, Sparkles, CheckCircle2, Camera } from 'lucide-react';
 import { api } from '../services/api';
 import { User } from '../types';
 import { useTheme } from '../contexts/ThemeContext';
@@ -26,7 +26,7 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess, onBack }) => {
       localStorage.setItem('urbaneye_token', res.token);
       onLoginSuccess(res.user, res.token);
     } catch (err: any) {
-      setError(err.message || 'Invalid government credentials.');
+      setError(err.message || 'Invalid credentials.');
     } finally {
       setLoading(false);
     }
@@ -49,7 +49,6 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess, onBack }) => {
   const inputClr   = isDark ? '#f1f5f9' : '#0f172a';
   const divClr     = isDark ? 'rgba(255, 255, 255, 0.1)' : '#e2e8f0';
   const hintClr    = isDark ? '#94a3b8' : '#64748b';
-  const codeClr    = isDark ? '#94a3b8' : '#475569';
 
   /* Crucial: fontSize 16px (1rem) prevents iOS Safari auto-zoom on focus */
   const inputStyle: React.CSSProperties = {
@@ -67,6 +66,16 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess, onBack }) => {
   };
 
   const personas = [
+    {
+      e: 'citizen@urbaneye.gov.in',
+      label: '📷 Public Citizen Reporter (Instant Camera Capture)',
+      badge: 'PUBLIC CITIZEN',
+      isDemo: true,
+      badgeColor: '#2dd4bf',
+      activeBg: 'linear-gradient(135deg, rgba(20, 184, 166, 0.25) 0%, rgba(13, 148, 136, 0.15) 100%)',
+      activeBorder: '#2dd4bf',
+      activeColor: '#5eead4',
+    },
     {
       e: 'head.kapurthala@urbaneye.gov.in',
       label: '★ District Head (Kapurthala Demo)',
@@ -332,6 +341,86 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess, onBack }) => {
               <span>{error}</span>
             </div>
           )}
+
+          {/* ── Public Citizen Reporter Quick Camera Entry ── */}
+          <div style={{
+            marginBottom: 16,
+            padding: '14px',
+            borderRadius: 14,
+            backgroundColor: isDark ? 'rgba(20, 184, 166, 0.12)' : '#f0fdf4',
+            border: '1px solid rgba(45, 212, 191, 0.4)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 10,
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div style={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: 8,
+                  backgroundColor: 'rgba(45,212,191,0.2)',
+                  border: '1px solid rgba(45,212,191,0.5)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#2dd4bf',
+                }}>
+                  <Camera style={{ width: 18, height: 18 }} />
+                </div>
+                <div>
+                  <h4 style={{ margin: 0, fontSize: '0.85rem', fontWeight: 800, color: isDark ? '#ffffff' : '#0f172a' }}>
+                    Public Citizen Reporter
+                  </h4>
+                  <p style={{ margin: 0, fontSize: '0.72rem', color: isDark ? '#94a3b8' : '#64748b' }}>
+                    Direct phone camera access to report road defects
+                  </p>
+                </div>
+              </div>
+              <span style={{ fontSize: '0.62rem', fontWeight: 800, padding: '2px 8px', borderRadius: 999, backgroundColor: '#2dd4bf', color: '#0f172a', textTransform: 'uppercase' }}>
+                CITIZEN
+              </span>
+            </div>
+
+            <button
+              type="button"
+              onClick={async () => {
+                setLoading(true);
+                setError(null);
+                try {
+                  const res = await api.login('citizen@urbaneye.gov.in', 'UrbanEye@2026');
+                  localStorage.setItem('urbaneye_token', res.token);
+                  onLoginSuccess(res.user, res.token);
+                } catch (err: any) {
+                  setError(err.message || 'Citizen login failed.');
+                } finally {
+                  setLoading(false);
+                }
+              }}
+              disabled={loading}
+              style={{
+                width: '100%',
+                minHeight: '40px',
+                padding: '8px 14px',
+                fontSize: '0.82rem',
+                fontWeight: 800,
+                borderRadius: 10,
+                border: 'none',
+                color: '#ffffff',
+                background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                cursor: loading ? 'not-allowed' : 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 6,
+                boxShadow: '0 4px 14px rgba(16,185,129,0.3)',
+                transition: 'transform 0.15s, background 0.15s',
+              }}
+            >
+              <Camera style={{ width: 16, height: 16, color: '#fef08a' }} />
+              <span>{loading ? 'Launching Camera...' : 'Log In as Citizen & Direct Launch AI Camera'}</span>
+            </button>
+          </div>
 
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
             {/* Email Field */}

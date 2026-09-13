@@ -187,6 +187,7 @@ export const Header: React.FC<HeaderProps> = ({
                 title="Switch test persona"
                 aria-label="Switch test persona"
               >
+                <option value="citizen@urbaneye.gov.in">📷 Public Citizen Reporter</option>
                 <option value="admin@urbaneye.gov.in">National Admin</option>
                 <option value="admin.pb@urbaneye.gov.in">State Admin (Punjab)</option>
                 <option value="head.kapurthala@urbaneye.gov.in">★ District Head (Kapurthala)</option>

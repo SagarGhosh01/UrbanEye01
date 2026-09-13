@@ -72,6 +72,17 @@ const DEMO_USERS: Record<string, any> = {
     districtId: null,
     districtName: null,
   },
+  'citizen@urbaneye.gov.in': {
+    id: 'usr-citizen-reporter-1',
+    email: 'citizen@urbaneye.gov.in',
+    name: 'Public Citizen Reporter (Edge Camera)',
+    role: 'CITIZEN_REPORTER',
+    stateId: 'state-punjab',
+    stateName: 'Punjab',
+    stateCode: 'PB',
+    districtId: 'dist-kapurthala',
+    districtName: 'Kapurthala',
+  },
   'admin@urbaneye.gov.in': {
     id: 'usr-admin-national',
     email: 'admin@urbaneye.gov.in',
@@ -97,6 +108,30 @@ authRouter.post('/login', async (req: Request, res: Response): Promise<void> => 
     }
 
     const cleanEmail = String(email).toLowerCase().trim();
+
+    if (cleanEmail.includes('citizen') || cleanEmail.includes('public') || cleanEmail.includes('reporter')) {
+      const citizenUser = {
+        id: `usr-citizen-${Date.now()}`,
+        email: cleanEmail,
+        name: 'Public Citizen Reporter (Edge Camera)',
+        role: 'CITIZEN_REPORTER',
+        stateId: 'state-punjab',
+        stateName: 'Punjab',
+        stateCode: 'PB',
+        districtId: 'dist-kapurthala',
+        districtName: 'Kapurthala',
+      };
+      const token = signToken({
+        userId: citizenUser.id,
+        email: citizenUser.email,
+        name: citizenUser.name,
+        role: citizenUser.role as any,
+        stateId: citizenUser.stateId,
+        districtId: citizenUser.districtId,
+      });
+      res.json({ token, user: citizenUser });
+      return;
+    }
 
     let user = null;
     try {

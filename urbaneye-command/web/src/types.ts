@@ -1,4 +1,4 @@
-export type Role = 'NATIONAL_ADMIN' | 'STATE_ADMIN' | 'DISTRICT_HEAD';
+export type Role = 'NATIONAL_ADMIN' | 'STATE_ADMIN' | 'DISTRICT_HEAD' | 'CITIZEN_REPORTER';
 
 export type EventStatus = 'NEW' | 'REVIEWED' | 'ASSIGNED_FOR_REPAIR' | 'RESOLVED';
 
