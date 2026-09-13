@@ -14,7 +14,8 @@ import time
 from pathlib import Path
 from ultralytics import YOLO
 
-ROOT_DIR = Path(r"c:\Users\sarka\OneDrive\Documents\Codes\Projects\UrbanEye + App")
+SCRIPT_DIR = Path(__file__).resolve().parent
+ROOT_DIR = SCRIPT_DIR.parents[2]
 DATASET_DIR = ROOT_DIR / "Road Defect.v1i.yolov8"
 DATA_YAML = DATASET_DIR / "data.yaml"
 

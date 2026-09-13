@@ -15,7 +15,8 @@ import argparse
 from pathlib import Path
 from ultralytics import YOLO
 
-ROOT_DIR = Path(r"c:\Users\sarka\OneDrive\Documents\Codes\Projects\UrbanEye + App")
+SCRIPT_DIR = Path(__file__).resolve().parent
+ROOT_DIR = SCRIPT_DIR.parents[2]
 MODEL_PT = ROOT_DIR / "runs" / "detect" / "road_defect_yolov8" / "weights" / "best.pt"
 FALLBACK_PT = ROOT_DIR / "runs" / "detect" / "train" / "weights" / "best.pt"
 
