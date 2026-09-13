@@ -42,9 +42,17 @@ const AppInner: React.FC = () => {
   const [activeDistrict, setActiveDistrict] = useState<District | null>(null);
 
 
-  // Data State
+const defaultStats: AnalyticsStats = {
+  totalEvents: 0,
+  byStatus: { new: 0, reviewed: 0, assigned: 0, resolved: 0 },
+  byType: { pothole: 0, roadCrack: 0, surfaceDamage: 0, waterlogging: 0, vehicleFlow: 0 },
+  activeBusesCount: 0,
+  roadHealthScore: 100,
+};
+
+// Data State
   const [events, setEvents] = useState<RoadEvent[]>([]);
-  const [stats, setStats] = useState<AnalyticsStats | null>(null);
+  const [stats, setStats] = useState<AnalyticsStats>(defaultStats);
   const [loadingData, setLoadingData] = useState(false);
   const [isPairingModalOpen, setIsPairingModalOpen] = useState(false);
   const [latestLiveAlert, setLatestLiveAlert] = useState<RoadEvent | null>(null);
