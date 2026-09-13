@@ -171,38 +171,62 @@ trafficRouter.get('/bottlenecks', (req, res) => {
   });
 });
 
-// POST /api/traffic/analyze - Congestion & Route Diversion Analysis
+// POST /api/traffic/analyze - Central Congestion & Bottleneck Decision Engine
 trafficRouter.post('/analyze', (req, res) => {
-  const { routeId, routeName } = req.body;
+  const { routeId, routeName, densityPercent, avgSpeedKmh, vehicleCount } = req.body;
 
   const route = KAPURTHALA_ROUTES.find(r => r.id === routeId || r.name === routeName) || KAPURTHALA_ROUTES[0];
 
+  const currentSpeed = Number(avgSpeedKmh || route.avgSpeedKmh);
+  const baselineSpeed = route.normalSpeedKmh;
+  const currentDensity = Number(densityPercent || (route.trafficLevel === 'SEVERE' ? 88 : route.trafficLevel === 'HEAVY' ? 76 : 45));
+  const vpm = Number(vehicleCount || route.vehiclesPerMin);
+
+  const speedReductionRatio = Math.max(0, (baselineSpeed - currentSpeed) / baselineSpeed);
+  const queueLengthMeters = Math.round(vpm * 2.25 + (speedReductionRatio * 350));
+  const durationMinutes = Math.round(8 + (speedReductionRatio * 15));
+
+  // Bottleneck Score calculation (0 - 100):
+  const bottleneckScore = Math.min(100, Math.round(
+    (speedReductionRatio * 45) +
+    (currentDensity * 0.35) +
+    (Math.min(queueLengthMeters, 1500) / 1500 * 20)
+  ));
+
+  const congestionLevel = bottleneckScore >= 80 ? 'SEVERE' : bottleneckScore >= 60 ? 'HEAVY' : bottleneckScore >= 40 ? 'MODERATE' : 'LOW';
+
   res.json({
     status: 'SUCCESS',
+    bottleneckEngine: 'UrbanEye Central Congestion Engine (YOLO26 + BoT-SORT)',
     analysis: {
       routeId: route.id,
       routeName: route.name,
       junctionTag: route.junctionTag,
-      trafficLevel: route.trafficLevel,
-      currentSpeedKmh: route.avgSpeedKmh,
-      normalSpeedKmh: route.normalSpeedKmh,
-      delayMinutes: route.estimatedDelayMin,
-      vehiclesPerMin: route.vehiclesPerMin,
+      bottleneckScore,
+      trafficLevel: congestionLevel,
+      currentSpeedKmh: currentSpeed,
+      baselineSpeedKmh: baselineSpeed,
+      speedReductionRatio: Math.round(speedReductionRatio * 100) / 100,
+      queueLengthMeters,
+      durationMinutes,
+      delayMinutes: Math.round(route.estimatedDelayMin * (bottleneckScore / 70)),
+      vehiclesPerMin: vpm,
+      vehicleClassification: route.vehicleClassification,
       diagnostics: [
         {
-          factor: 'Vehicle Volume Spike',
-          severity: 'HIGH',
-          description: `Ingestion detected ${route.vehiclesPerMin} vehicles/min exceeding normal design capacity of 110/min.`,
+          factor: 'Vehicle Density Spike',
+          severity: currentDensity >= 80 ? 'CRITICAL' : 'HIGH',
+          description: `Telemetry detected ${vpm} vehicles/min exceeding normal design capacity. Density: ${currentDensity}%.`,
         },
         {
-          factor: 'Bottleneck Bottleneck Node',
-          severity: 'CRITICAL',
-          description: `Intersection bottleneck at ${route.junctionTag} causing a queue tailback of ~1.8 km.`,
+          factor: 'Queue Tailback Accumulation',
+          severity: queueLengthMeters > 500 ? 'CRITICAL' : 'HIGH',
+          description: `Bottleneck node at ${route.junctionTag} causing queue tailback of ${queueLengthMeters}m over ${durationMinutes} mins.`,
         },
         {
-          factor: 'Vehicle Mix Impact',
+          factor: 'Commercial Vehicle Drag',
           severity: 'MEDIUM',
-          description: `Heavy commercial trucks account for ${route.vehicleClassification.trucks}% of traffic stream, slowing acceleration cycles.`,
+          description: `Trucks & heavy vehicles represent ${route.vehicleClassification.trucks}% of stream, reducing acceleration recovery.`,
         },
       ],
       recommendedDiversions: [
@@ -211,7 +235,7 @@ trafficRouter.post('/analyze', (req, res) => {
           name: 'Phagwara Express Bypass',
           via: 'Sector 14 Outer Ring',
           extraDistanceKm: 2.4,
-          estimatedTimeSavedMin: 11,
+          estimatedTimeSavedMin: Math.max(5, Math.round(durationMinutes * 0.8)),
           trafficStatus: 'CLEAR',
           confidenceScore: 94,
         },
@@ -220,7 +244,7 @@ trafficRouter.post('/analyze', (req, res) => {
           name: 'Nakodar Road Corridor',
           via: 'Sector 12 Flyover Link',
           extraDistanceKm: 1.1,
-          estimatedTimeSavedMin: 8,
+          estimatedTimeSavedMin: Math.max(3, Math.round(durationMinutes * 0.6)),
           trafficStatus: 'MODERATE',
           confidenceScore: 88,
         },
