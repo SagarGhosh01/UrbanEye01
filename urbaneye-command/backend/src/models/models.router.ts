@@ -104,6 +104,19 @@ modelsRouter.get('/info', (req, res) => {
         features: ['15m/30m/60m Congestion Forecast', 'Recurring Hotspot Prioritization', 'AI Work Order Recommendations'],
         status: 'ACTIVE_PREDICTIVE',
       },
+      {
+        id: 'urbaneye-gps-telemetry-ekf',
+        name: 'World Top GPS Telemetry & Map-Matching Model (EKF + OSM Nominatim + OSRM)',
+        format: 'Extended Kalman Filter + OpenStreetMap Nominatim / OSRM API',
+        placement: 'Edge / Server Pipeline',
+        features: [
+          'Real-time Snap-to-Road Map Matching',
+          'High-Precision Reverse Geocoding (Street, Highway, District)',
+          'Extended Kalman Filter Noise Reduction & Speed Vector Estimation',
+          'WGS84 Ellipsoidal Geodesy & Haversine Proximity Indexing',
+        ],
+        status: 'ACTIVE_GPS_TELEMETRY',
+      },
     ],
     trainingPipeline: {
       script: 'scripts/train_road_defects.py',

@@ -14,6 +14,7 @@ import { incidentsRouter } from './incidents/incidents.router.js';
 import { safetyRouter } from './safety/safety.router.js';
 import { predictiveRouter } from './predictive/predictive.router.js';
 import { modelsRouter } from './models/models.router.js';
+import { gpsRouter } from './gps/gps.router.js';
 
 dotenv.config();
 
@@ -56,6 +57,7 @@ app.use('/api/incidents', incidentsRouter);
 app.use('/api/safety', safetyRouter);
 app.use('/api/predictive', predictiveRouter);
 app.use('/api/models', modelsRouter);
+app.use('/api/gps', gpsRouter);
 
 
 
