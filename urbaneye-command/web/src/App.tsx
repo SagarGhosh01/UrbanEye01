@@ -514,17 +514,19 @@ const defaultStats: AnalyticsStats = {
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 mb-6">
                   {/* Map Column (8 cols) */}
                   <div className="lg:col-span-8 flex flex-col">
-                    <div className={`p-3 rounded-t-lg border border-b-0 flex items-center justify-between text-xs font-bold ${isDark ? 'bg-slate-800 border-slate-700 text-slate-100' : 'bg-white border-slate-200 text-slate-800'}`}>
+                    <div className={`p-3.5 rounded-t-xl border border-b-0 flex items-center justify-between text-xs font-bold ${
+                      isDark ? 'bg-[#0B1C33] border-slate-700/80 text-white' : 'bg-white border-slate-200 text-slate-800'
+                    }`}>
                       <div className="flex items-center space-x-2">
-                        <Radio className="w-4 h-4 text-[#1E7F73] animate-pulse" />
+                        <Radio className="w-4 h-4 text-teal-400 animate-pulse" />
                         <span className="truncate">Real-Time Geospatial Defect Distribution</span>
                       </div>
-                      <span className="text-[10px] text-[#1E7F73] bg-[#1E7F73]/10 px-2 py-0.5 rounded font-mono shrink-0">
+                      <span className="text-[10px] font-bold font-mono text-teal-300 bg-teal-500/15 border border-teal-500/30 px-2.5 py-0.5 rounded-full shrink-0">
                         Leaflet GIS Active
                       </span>
                     </div>
 
-                    <div className="h-[380px] sm:h-[450px] w-full rounded-b-lg border overflow-hidden relative shadow-inner">
+                    <div className="h-[380px] sm:h-[450px] w-full rounded-b-xl border border-slate-700/80 overflow-hidden relative shadow-xl">
                       <LiveMap
                         events={events}
                         centerLat={activeDistrict.centerLat}
@@ -539,17 +541,21 @@ const defaultStats: AnalyticsStats = {
 
                   {/* Realtime Detection Activity Stream (4 cols) */}
                   <div className="lg:col-span-4 flex flex-col">
-                    <div className={`p-3 rounded-t-lg border border-b-0 flex items-center justify-between text-xs font-bold ${isDark ? 'bg-slate-800 border-slate-700 text-slate-100' : 'bg-white border-slate-200 text-slate-800'}`}>
+                    <div className={`p-3.5 rounded-t-xl border border-b-0 flex items-center justify-between text-xs font-bold ${
+                      isDark ? 'bg-[#0B1C33] border-slate-700/80 text-white' : 'bg-white border-slate-200 text-slate-800'
+                    }`}>
                       <div className="flex items-center space-x-2">
-                        <Radio className="w-4 h-4 text-emerald-500 animate-ping" />
+                        <Radio className="w-4 h-4 text-teal-400 animate-pulse" />
                         <span>Live Telemetry Stream</span>
                       </div>
-                      <span className="text-[10px] text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded font-mono">
+                      <span className="text-[10px] font-bold font-mono text-teal-300 bg-teal-500/15 border border-teal-500/30 px-2.5 py-0.5 rounded-full">
                         {events.length} Events
                       </span>
                     </div>
 
-                    <div className={`flex-1 rounded-b-lg border p-3 overflow-y-auto max-h-[380px] sm:max-h-[450px] space-y-2.5 ${isDark ? 'bg-slate-800/40 border-slate-700' : 'bg-white border-slate-200'}`}>
+                    <div className={`flex-1 rounded-b-xl border border-slate-700/80 p-3 overflow-y-auto max-h-[380px] sm:max-h-[450px] space-y-2.5 ${
+                      isDark ? 'bg-[#0B1C33]/60 backdrop-blur-sm' : 'bg-white border-slate-200'
+                    }`}>
                       {events.length === 0 ? (
                         <div className="h-full flex flex-col items-center justify-center p-6 text-center text-slate-400">
                           <Radio className="w-8 h-8 mb-2 opacity-50 animate-pulse text-[#1E7F73]" />

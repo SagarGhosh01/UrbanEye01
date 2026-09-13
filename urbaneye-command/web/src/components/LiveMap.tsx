@@ -4,6 +4,7 @@ import { RoadEvent, EventStatus } from '../types';
 import { ChevronUp, ChevronDown, Layers } from 'lucide-react';
 import { getCategoryPriority, MAX_CATEGORY_PRIORITY } from '../constants/detectionCategories';
 import { getPotholeCostDetails } from '../utils/potholeEstimates';
+import { useTheme } from '../contexts/ThemeContext';
 
 interface LiveMapProps {
   events: RoadEvent[];
@@ -39,6 +40,7 @@ export const LiveMap: React.FC<LiveMapProps> = ({
   latestEventId,
   activeLayerFilters = { defects: true, traffic: true, incidents: true, vruSafety: true, predictive: true },
 }) => {
+  const { isDark } = useTheme();
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const markersLayerRef = useRef<L.LayerGroup | null>(null);
@@ -58,7 +60,6 @@ export const LiveMap: React.FC<LiveMapProps> = ({
   // Collapsible legend state
   const [legendOpen, setLegendOpen] = useState(false);
 
-
   // Initialize Map
   useEffect(() => {
     if (!mapContainerRef.current) return;
@@ -73,10 +74,15 @@ export const LiveMap: React.FC<LiveMapProps> = ({
       // Bottom-right zoom control: thumb-safe for one-handed mobile use & prevents blocking header
       L.control.zoom({ position: 'bottomright' }).addTo(map);
 
-      // OpenStreetMap standard tiles
-      L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; OpenStreetMap contributors',
+      // CartoDB Dark Matter / Voyager High-Tech Map Tiles
+      const tileUrl = isDark
+        ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+        : 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
+
+      L.tileLayer(tileUrl, {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
         maxZoom: 19,
+        subdomains: 'abcd',
       }).addTo(map);
 
       const markersLayer = L.layerGroup().addTo(map);
