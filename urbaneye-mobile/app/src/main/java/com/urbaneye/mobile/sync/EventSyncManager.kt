@@ -131,23 +131,6 @@ class EventSyncManager(private val context: Context) {
         }
     }
 
-            // Buffer locally in Room database for offline retry
-            val entity = EventEntity(
-                deviceSessionId = deviceSessionId,
-                type = type,
-                confidence = confidence,
-                latitude = lat,
-                longitude = lon,
-                heading = heading,
-                speed = speed,
-                imageSnippet = imageSnippetBase64,
-                timestamp = timestamp
-            )
-            eventDao.insertEvent(entity)
-            Log.d(tag, "📦 Event queued in offline local buffer. Pending: ${eventDao.getPendingCount()}")
-        }
-    }
-
     private suspend fun flushQueue() {
         if (isFlushing) return
         isFlushing = true
