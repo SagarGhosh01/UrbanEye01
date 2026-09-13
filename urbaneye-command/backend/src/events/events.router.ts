@@ -152,6 +152,17 @@ export function calculateDefectMetrics(
   return { diameterCm, repairCost };
 }
 
+export function getDistanceMeters(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371000;
+  const dLat = (lat2 - lat1) * (Math.PI / 180);
+  const dLon = (lon2 - lon1) * (Math.PI / 180);
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
 /**
  * 1. Mobile App Ingestion Endpoint
  */
@@ -218,6 +229,66 @@ eventsRouter.post('/ingest', async (req: Request, res: Response): Promise<void> 
     const defectMetrics = calculateDefectMetrics(upperType, rawDiameterCm, rawRepairCost, numLat, numLon);
     const finalDiameterCm = defectMetrics.diameterCm;
     const finalRepairCost = defectMetrics.repairCost;
+
+    // 🛡️ DEDUPLICATION ENGINE:
+    // Prevent continuous spamming of the exact same physical pothole / hazard.
+    // Spatial threshold: 25 meters. Temporal threshold: 60 seconds (60,000ms).
+    const nowMs = timestamp ? new Date(timestamp).getTime() : Date.now();
+    const DEDUPLICATION_RADIUS_METERS = 25;
+    const DEDUPLICATION_TIME_MS = 60000;
+
+    let duplicateEvent = IN_MEMORY_EVENTS.find((e) => {
+      if (e.type !== upperType) return false;
+      const eTime = new Date(e.timestamp).getTime();
+      if (Math.abs(nowMs - eTime) > DEDUPLICATION_TIME_MS) return false;
+      const dist = getDistanceMeters(numLat, numLon, Number(e.latitude), Number(e.longitude));
+      return dist <= DEDUPLICATION_RADIUS_METERS;
+    });
+
+    if (duplicateEvent) {
+      console.log(`🛡️ Deduplicated event '${duplicateEvent.id}' at (${numLat}, ${numLon}) - updating existing detection record.`);
+      duplicateEvent.timestamp = new Date(nowMs);
+      if (Number(confidence) > duplicateEvent.confidence) {
+        duplicateEvent.confidence = Number(confidence);
+      }
+      if (imageSnippet && (!duplicateEvent.imageSnippet || imageSnippet.length > (duplicateEvent.imageSnippet?.length || 0))) {
+        duplicateEvent.imageSnippet = imageSnippet;
+      }
+      if (heading !== undefined) duplicateEvent.heading = Number(heading);
+      if (speed !== undefined) duplicateEvent.speed = Number(speed);
+      if (finalDiameterCm) duplicateEvent.estimatedDiameterCm = finalDiameterCm;
+      if (finalRepairCost) duplicateEvent.estimatedRepairCost = finalRepairCost;
+
+      try {
+        await prisma.roadEvent.update({
+          where: { id: duplicateEvent.id },
+          data: {
+            timestamp: duplicateEvent.timestamp,
+            confidence: duplicateEvent.confidence,
+            imageSnippet: duplicateEvent.imageSnippet,
+            heading: duplicateEvent.heading,
+            speed: duplicateEvent.speed,
+            estimatedDiameterCm: duplicateEvent.estimatedDiameterCm,
+            estimatedRepairCost: duplicateEvent.estimatedRepairCost,
+          },
+        });
+      } catch (dbUpdateErr) {
+        // memory already updated
+      }
+
+      emitRoadEventUpdated(duplicateEvent);
+
+      res.status(200).json({
+        success: true,
+        deduplicated: true,
+        eventId: duplicateEvent.id,
+        districtId: duplicateEvent.districtId,
+        busLabel: duplicateEvent.busLabel,
+        timestamp: duplicateEvent.timestamp,
+        message: 'Deduplicated: updated existing nearby pothole detection within 25m radius.',
+      });
+      return;
+    }
 
     const newEventObj = {
       id: `evt-live-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,

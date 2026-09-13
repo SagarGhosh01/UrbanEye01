@@ -158,7 +158,11 @@ export const LiveCameraModal: React.FC<LiveCameraModalProps> = ({
 
       if (response.ok) {
         const resData = await response.json();
-        setLastTransmitted(`${selectedType} captured & transmitted live (${new Date().toLocaleTimeString()})`);
+        if (resData.deduplicated) {
+          setLastTransmitted(`🛡️ ${selectedType} updated live (Deduplicated nearby detection #${resData.eventId})`);
+        } else {
+          setLastTransmitted(`✨ ${selectedType} captured & transmitted live (${new Date().toLocaleTimeString()})`);
+        }
         if (onEventIngested) onEventIngested();
       } else {
         console.warn('Ingest HTTP non-200:', response.status);

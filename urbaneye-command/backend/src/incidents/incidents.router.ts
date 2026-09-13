@@ -156,6 +156,17 @@ incidentsRouter.get('/', async (req, res) => {
   }
 });
 
+function getDistanceMeters(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371000;
+  const dLat = (lat2 - lat1) * (Math.PI / 180);
+  const dLon = (lon2 - lon1) * (Math.PI / 180);
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
 // POST /api/incidents/ingest - Mobile Ingestion Endpoint for Incidents & Vehicle Tracking
 incidentsRouter.post('/ingest', async (req, res) => {
   try {
@@ -188,6 +199,39 @@ incidentsRouter.post('/ingest', async (req, res) => {
     const numLat = Number(latitude);
     const numLon = Number(longitude);
     const numSpeed = Number(speedKmh || 65);
+    const upperCategory = category.toUpperCase();
+
+    // 🛡️ DEDUPLICATION CHECK (25 meters, 60 seconds)
+    const nowMs = timestamp ? new Date(timestamp).getTime() : Date.now();
+    const existingDup = DEFAULT_INCIDENTS.find((inc) => {
+      if (inc.category !== upperCategory) return false;
+      const incTime = new Date(inc.timestamp).getTime();
+      if (Math.abs(nowMs - incTime) > 60000) return false;
+      return getDistanceMeters(numLat, numLon, inc.latitude, inc.longitude) <= 25;
+    });
+
+    if (existingDup) {
+      console.log(`🛡️ Deduplicated incident '${existingDup.id}' - updating existing record.`);
+      existingDup.timestamp = timestamp || new Date().toISOString();
+      if (Number(confidence) > existingDup.confidence) existingDup.confidence = Number(confidence);
+      if (imageSnippet) existingDup.imageSnippet = imageSnippet;
+      existingDup.speedKmh = numSpeed;
+
+      const socketIO = getIO();
+      if (socketIO) {
+        socketIO.emit('incident:updated', existingDup);
+        socketIO.to(`district:${districtId}`).emit('incident:updated', existingDup);
+      }
+
+      res.status(200).json({
+        success: true,
+        deduplicated: true,
+        incidentId: existingDup.id,
+        districtId,
+        message: 'Deduplicated: updated existing nearby incident within 25m radius.',
+      });
+      return;
+    }
 
     const frameTrajectory = JSON.stringify([
       { lat: numLat - 0.003, lon: numLon - 0.003, speed: numSpeed + 8, timestamp: new Date(Date.now() - 15000).toISOString() },
