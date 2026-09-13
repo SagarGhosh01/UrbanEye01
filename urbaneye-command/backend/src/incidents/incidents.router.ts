@@ -210,7 +210,7 @@ incidentsRouter.post('/ingest', async (req, res) => {
           busLabel,
           districtId,
           imageSnippet: imageSnippet || null,
-          status: 'PENDING',
+          status: 'AI_FLAGGED',
           timestamp: timestamp ? new Date(timestamp) : new Date(),
         },
       });
@@ -228,7 +228,7 @@ incidentsRouter.post('/ingest', async (req, res) => {
         busLabel,
         districtId,
         imageSnippet: imageSnippet || null,
-        status: 'PENDING',
+        status: 'AI_FLAGGED',
         authorityNotes: null,
         timestamp: timestamp || new Date().toISOString(),
         createdAt: new Date().toISOString(),
