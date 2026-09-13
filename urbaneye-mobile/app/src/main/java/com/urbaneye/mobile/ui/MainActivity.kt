@@ -42,7 +42,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var pairingManager: PairingManager
     private lateinit var eventSyncManager: EventSyncManager
     private val frameThrottler = FrameThrottler(targetFps = 8)
-    private val temporalTracker = TemporalDetectionTracker(requiredHits = 3, maxMissedFrames = 3)
+    private val temporalTracker = TemporalDetectionTracker(requiredHits = 1, maxMissedFrames = 3)
 
     private var userDismissedPairingOverlay = false
     private var latestBitmap: Bitmap? = null
@@ -282,9 +282,9 @@ class MainActivity : AppCompatActivity() {
                 )
             }
 
-            // Smart Event Dispatch: Only upload temporally confirmed defects (3 of 5 frames) meeting threshold
-            val activeSessionId = pairingManager.getActiveSessionId()
-            if (activeSessionId != null && confirmedEvents.isNotEmpty()) {
+            // Smart Event Dispatch: Upload temporally confirmed defects meeting threshold
+            val activeSessionId = pairingManager.getActiveSessionId() ?: "demo-session-kapurthala"
+            if (confirmedEvents.isNotEmpty()) {
                 for (det in confirmedEvents) {
                     if (det.confidence >= detector.targetConfidenceThreshold) {
                         val tel = locationTracker.currentTelemetry

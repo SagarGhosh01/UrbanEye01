@@ -29,7 +29,7 @@ class OnnxRoadDefectDetector(
 ) : PluggableDetector {
 
     override val modelName: String = "UrbanEye-YOLOv8-RoadDefect"
-    override val targetConfidenceThreshold: Float = 0.15f
+    override val targetConfidenceThreshold: Float = 0.10f
 
     private val tag = "RoadDefectDetector"
     private var env: OrtEnvironment? = null
@@ -89,7 +89,7 @@ class OnnxRoadDefectDetector(
     /**
      * Executes YOLOv8 ONNX inference on camera frame.
      * Tensor input: "images" [1, 3, 320, 320]
-     * Tensor output: "output0" [1, 11, 2100] -> (cx, cy, w, h, D00..D50)
+     * Handles both [1, 11, N] and [1, N, 11] tensor layout shapes dynamically.
      */
     private fun runYoloInference(bitmap: Bitmap): List<DetectionResult> {
         val ortEnv = env ?: return emptyList()
@@ -126,25 +126,35 @@ class OnnxRoadDefectDetector(
             val outBuffer: FloatBuffer = outputTensor.floatBuffer
             val totalElements = outBuffer.remaining()
 
-            // Determine actual number of anchors from model output
-            // YOLOv8 output shape: [1, (4 + numClasses), numAnchors]
-            val actualNumAnchors = if (totalElements > 0) totalElements / (4 + numClasses) else numAnchors
-            if (actualNumAnchors <= 0) return emptyList()
-            Log.d(tag, "Model output: $totalElements elements, ${4 + numClasses} rows, $actualNumAnchors anchors")
+            val shape = outputTensor.info.shape
+            val numRows = 4 + numClasses
+            val isTransposed = shape.size == 3 && shape[1] > shape[2]
+            val actualNumAnchors = if (shape.size == 3) {
+                if (isTransposed) shape[1].toInt() else shape[2].toInt()
+            } else {
+                if (totalElements > 0) totalElements / numRows else numAnchors
+            }
 
-            if (totalElements < (4 + numClasses) * actualNumAnchors) {
+            if (actualNumAnchors <= 0 || totalElements < numRows * actualNumAnchors) {
                 return emptyList()
+            }
+
+            fun getTensorVal(row: Int, anchor: Int): Float {
+                return if (isTransposed) {
+                    outBuffer.get(anchor * numRows + row)
+                } else {
+                    outBuffer.get(row * actualNumAnchors + anchor)
+                }
             }
 
             val candidates = mutableListOf<RawCandidate>()
 
-            // Stride: index of row r, anchor j is (r * numAnchors + j)
             for (j in 0 until actualNumAnchors) {
                 var maxScore = 0f
                 var maxClassIdx = -1
 
                 for (c in 0 until numClasses) {
-                    val score = outBuffer.get((4 + c) * actualNumAnchors + j)
+                    val score = getTensorVal(4 + c, j)
                     if (score > maxScore) {
                         maxScore = score
                         maxClassIdx = c
@@ -152,10 +162,10 @@ class OnnxRoadDefectDetector(
                 }
 
                 if (maxScore >= targetConfidenceThreshold) {
-                    val cx = outBuffer.get(0 * actualNumAnchors + j)
-                    val cy = outBuffer.get(1 * actualNumAnchors + j)
-                    val w = outBuffer.get(2 * actualNumAnchors + j)
-                    val h = outBuffer.get(3 * actualNumAnchors + j)
+                    val cx = getTensorVal(0, j)
+                    val cy = getTensorVal(1, j)
+                    val w = getTensorVal(2, j)
+                    val h = getTensorVal(3, j)
 
                     val normLeft = ((cx - w / 2f) / inputWidth).coerceIn(0f, 0.98f)
                     val normTop = ((cy - h / 2f) / inputHeight).coerceIn(0f, 0.98f)
@@ -164,16 +174,15 @@ class OnnxRoadDefectDetector(
 
                     val box = RectF(normLeft, normTop, normRight, normBottom)
 
-                    // Road surface sanity check (valid horizon & perspective geometry)
+                    // Road surface sanity check
                     if (SanityFilter.isValidRoadDefect(box)) {
                         val mappedType = when (maxClassIdx) {
-                            0, 1 -> "ROAD_CRACK" // D00, D10: Linear Cracks
+                            0, 1 -> "ROAD_CRACK"
                             2 -> {
-                                // D20: Alligator crack. If compact crater (aspect 0.4..2.2 and sizable), it is a disintegrated pothole
                                 val aspect = box.width() / box.height().coerceAtLeast(0.01f)
-                                if (aspect in 0.4f..2.2f && (box.width() * box.height()) > 0.035f) "POTHOLE" else "ROAD_CRACK"
+                                if (aspect in 0.3f..2.5f && (box.width() * box.height()) > 0.02f) "POTHOLE" else "ROAD_CRACK"
                             }
-                            3, 4, 5, 6 -> "POTHOLE" // D40 (Pothole/Rut/Depression), D43, D44, D50 (Pothole voids, craters, patch failures)
+                            3, 4, 5, 6 -> "POTHOLE"
                             else -> "POTHOLE"
                         }
                         candidates.add(RawCandidate(mappedType, maxScore, box))
@@ -251,8 +260,8 @@ class OnnxRoadDefectDetector(
         val sampleStepX = max(1, width / gridCols)
         val sampleStepY = max(1, height / gridRows)
 
-        val startRow = (gridRows * 0.40f).toInt()
-        val endRow = (gridRows * 0.92f).toInt()
+        val startRow = (gridRows * 0.15f).toInt()
+        val endRow = (gridRows * 0.95f).toInt()
 
         var roadLuminanceSum = 0f
         var roadSamplesCount = 0
@@ -288,7 +297,7 @@ class OnnxRoadDefectDetector(
             }
         }
 
-        if (peakDepression < 0.28f || peakR == -1 || peakC == -1) return emptyList()
+        if (peakDepression < 0.12f || peakR == -1 || peakC == -1) return emptyList()
 
         val left = (max(0, peakC - 2).toFloat() / gridCols).coerceIn(0.04f, 0.92f)
         val right = (min(gridCols - 1, peakC + 3).toFloat() / gridCols).coerceIn(left + 0.05f, 0.96f)

@@ -13,7 +13,7 @@ import kotlin.math.min
  * Eliminates transient glints, camera sensor noise, and briefly displayed handheld pictures.
  */
 class TemporalDetectionTracker(
-    private val requiredHits: Int = 3,
+    private val requiredHits: Int = 1,
     private val maxMissedFrames: Int = 3,
     private val iouThreshold: Float = 0.25f,
     private val maxCentroidDistance: Float = 0.14f

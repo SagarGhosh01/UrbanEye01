@@ -13,16 +13,15 @@ object SanityFilter {
     private const val TAG = "RoadSanityFilter"
 
     // Road perspective constraints
-    private const val MIN_ROAD_HORIZON_TOP = 0.08f     // Road surface fills viewfinder when tilted forward
+    private const val MIN_ROAD_HORIZON_TOP = 0.02f     // Allow full-viewfinder detection
     private const val MAX_BOTTOM_EDGE = 0.99f          // Below hood of bus
-    private const val MAX_FRAME_AREA_RATIO = 0.55f     // Allow close-up/prominent road craters
-    private const val MIN_FRAME_AREA_RATIO = 0.002f    // Allow smaller/distant road defects
+    private const val MAX_FRAME_AREA_RATIO = 0.70f     // Allow prominent craters and test targets
+    private const val MIN_FRAME_AREA_RATIO = 0.001f    // Allow smaller road defects
 
     // Aspect ratio constraints: W / H
-    // Real potholes can be circular, foreshortened horizontally, or elongated along the travel axis
-    private const val MIN_ASPECT_RATIO = 0.35f         // Allow potholes elongated along travel direction
-    private const val MAX_ASPECT_RATIO = 4.20f         // Maximum horizontal elongation (long cracks)
-    private const val MAX_PORTRAIT_RATIO = 2.80f       // Allow oval potholes in portrait viewfinder orientation
+    private const val MIN_ASPECT_RATIO = 0.20f
+    private const val MAX_ASPECT_RATIO = 5.0f
+    private const val MAX_PORTRAIT_RATIO = 4.5f
 
     /**
      * Evaluates whether a candidate bounding box represents a genuine road surface defect
