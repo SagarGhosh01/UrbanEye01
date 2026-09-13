@@ -30,23 +30,27 @@ export function calculateDefectMetrics(
     const d = diameterCm || 35;
     const rawCost = (d / 10) * (d / 10) * 55 + d * 25 + 400;
     repairCost = Math.max(800, Math.round(rawCost / 50) * 50);
-  } else if (upperType === 'ROAD_CRACK') {
+  } else if (upperType === 'LONGITUDINAL_CRACK' || upperType === 'TRANSVERSE_CRACK' || upperType === 'ALLIGATOR_CRACK' || upperType === 'ROAD_CRACK') {
     repairCost = Math.round((1200 + seed * 2800) / 50) * 50;
-  } else if (upperType === 'SURFACE_DAMAGE') {
+  } else if (upperType === 'SURFACE_DAMAGE' || upperType === 'ROAD_EDGE_DAMAGE') {
     repairCost = Math.round((1500 + seed * 3200) / 50) * 50;
+  } else if (upperType === 'OPEN_MANHOLE') {
+    repairCost = Math.round((6000 + seed * 9000) / 100) * 100;
+  } else if (upperType === 'DEBRIS' || upperType === 'OTHER_HAZARD') {
+    repairCost = Math.round((1800 + seed * 2500) / 50) * 50;
   } else if (upperType === 'WATERLOGGING') {
     repairCost = Math.round((3500 + seed * 8500) / 100) * 100;
-  } else if (upperType === 'MISSING_DIVIDER') {
+  } else if (upperType === 'MISSING_DIVIDER' || upperType === 'BARRIERS') {
     repairCost = Math.round((5000 + seed * 13000) / 100) * 100;
-  } else if (upperType === 'MISSING_ZEBRA_CROSSING') {
+  } else if (upperType === 'MISSING_ZEBRA_CROSSING' || upperType === 'FADED_ZEBRA_CROSSING' || upperType === 'MISSING_LANE_MARKING') {
     repairCost = Math.round((2500 + seed * 3500) / 50) * 50;
-  } else if (upperType === 'DAMAGED_SIGNBOARD') {
+  } else if (upperType === 'DAMAGED_SIGNBOARD' || upperType === 'TRAFFIC_SIGN' || upperType === 'SPEED_LIMIT_SIGN' || upperType === 'SCHOOL_ZONE_SIGN' || upperType === 'STOP_SIGN' || upperType === 'ROAD_ASSETS') {
     repairCost = Math.round((1800 + seed * 2700) / 50) * 50;
   } else if (upperType === 'VEHICLE_FLOW' || upperType === 'TRAFFIC_BOTTLENECK') {
     repairCost = Math.round((4000 + seed * 9500) / 100) * 100;
   } else if (upperType === 'SCHOOL_CHILDREN_CROSSING') {
     repairCost = Math.round((3000 + seed * 5000) / 50) * 50;
-  } else if (upperType === 'RASH_DRIVING' || upperType === 'HIT_AND_RUN') {
+  } else if (upperType === 'RASH_DRIVING' || upperType === 'HIT_AND_RUN' || upperType === 'ACCIDENT' || upperType === 'DANGEROUS_DRIVING' || upperType === 'VEHICLE_ANOMALY') {
     repairCost = Math.round((8000 + seed * 17000) / 100) * 100;
   } else {
     repairCost = Math.round((1000 + seed * 2500) / 50) * 50;

@@ -177,13 +177,19 @@ class OnnxRoadDefectDetector(
                     // Road surface sanity check
                     if (SanityFilter.isValidRoadDefect(box)) {
                         val mappedType = when (maxClassIdx) {
-                            0, 1 -> "ROAD_CRACK"
-                            2 -> {
+                            0 -> "LONGITUDINAL_CRACK"
+                            1 -> "TRANSVERSE_CRACK"
+                            2 -> "ALLIGATOR_CRACK"
+                            3 -> "POTHOLE"
+                            4 -> "SURFACE_DAMAGE"
+                            5 -> "WATERLOGGING"
+                            6 -> "ROAD_EDGE_DAMAGE"
+                            7 -> "DEBRIS"
+                            8 -> "OPEN_MANHOLE"
+                            else -> {
                                 val aspect = box.width() / box.height().coerceAtLeast(0.01f)
-                                if (aspect in 0.3f..2.5f && (box.width() * box.height()) > 0.02f) "POTHOLE" else "ROAD_CRACK"
+                                if (aspect in 0.3f..2.5f && (box.width() * box.height()) > 0.02f) "POTHOLE" else "SURFACE_DAMAGE"
                             }
-                            3, 4, 5, 6 -> "POTHOLE"
-                            else -> "POTHOLE"
                         }
                         candidates.add(RawCandidate(mappedType, maxScore, box))
                     }
@@ -195,7 +201,7 @@ class OnnxRoadDefectDetector(
 
             nmsResults.map { c ->
                 val snippet = cropSnippetBase64(bitmap, c.box)
-                val diameter = if (c.type == "POTHOLE" || c.type == "SURFACE_DAMAGE") estimatePotholeDiameter(c.box) else null
+                val diameter = if (c.type == "POTHOLE" || c.type == "SURFACE_DAMAGE" || c.type == "OPEN_MANHOLE" || c.type == "ROAD_EDGE_DAMAGE") estimatePotholeDiameter(c.box) else null
                 val cost = diameter?.let { estimateRepairCost(it) }
                 DetectionResult(
                     type = c.type,
