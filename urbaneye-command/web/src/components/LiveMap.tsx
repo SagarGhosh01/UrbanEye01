@@ -74,16 +74,18 @@ export const LiveMap: React.FC<LiveMapProps> = ({
       // Bottom-right zoom control: thumb-safe for one-handed mobile use & prevents blocking header
       L.control.zoom({ position: 'bottomright' }).addTo(map);
 
-      // CartoDB Dark Matter / Voyager High-Tech Map Tiles
-      const tileUrl = isDark
-        ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
-        : 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
-
-      L.tileLayer(tileUrl, {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
+      // OpenStreetMap high-contrast tile layer (100% free, no API key required, zero watermark)
+      const tileLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
         maxZoom: 19,
-        subdomains: 'abcd',
       }).addTo(map);
+
+      if (isDark) {
+        const container = tileLayer.getContainer();
+        if (container) {
+          container.style.filter = 'brightness(0.68) invert(100%) contrast(1.25) hue-rotate(190deg) saturate(0.35)';
+        }
+      }
 
       const markersLayer = L.layerGroup().addTo(map);
       markersLayerRef.current = markersLayer;
