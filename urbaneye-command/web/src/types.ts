@@ -118,6 +118,7 @@ export interface AnalyticsStats {
   };
   activeBusesCount: number;
   roadHealthScore: number;
+  totalRepairCost?: number;
 }
 
 export interface DistrictSummaryItem {

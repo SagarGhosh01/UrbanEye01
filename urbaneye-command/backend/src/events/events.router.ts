@@ -6,6 +6,55 @@ import { IN_MEMORY_SESSIONS } from '../pairing/pairing.router.js';
 
 export const eventsRouter = Router();
 
+export function calculateDefectMetrics(
+  type: string,
+  providedDiameter: number | null,
+  providedCost: number | null,
+  lat: number,
+  lon: number
+): { diameterCm: number | null; repairCost: number } {
+  const upperType = type.toUpperCase();
+  const seed = Math.abs(Math.sin(lat * 1000 + lon * 1000));
+  
+  let diameterCm = providedDiameter;
+  if (diameterCm === null && (upperType === 'POTHOLE' || upperType === 'SURFACE_DAMAGE')) {
+    diameterCm = Math.round(seed * 40 + 28);
+  }
+
+  if (providedCost !== null && providedCost > 0) {
+    return { diameterCm, repairCost: Math.round(providedCost) };
+  }
+
+  let repairCost = 1200;
+  if (upperType === 'POTHOLE') {
+    const d = diameterCm || 35;
+    const rawCost = (d / 10) * (d / 10) * 55 + d * 25 + 400;
+    repairCost = Math.max(800, Math.round(rawCost / 50) * 50);
+  } else if (upperType === 'ROAD_CRACK') {
+    repairCost = Math.round((1200 + seed * 2800) / 50) * 50;
+  } else if (upperType === 'SURFACE_DAMAGE') {
+    repairCost = Math.round((1500 + seed * 3200) / 50) * 50;
+  } else if (upperType === 'WATERLOGGING') {
+    repairCost = Math.round((3500 + seed * 8500) / 100) * 100;
+  } else if (upperType === 'MISSING_DIVIDER') {
+    repairCost = Math.round((5000 + seed * 13000) / 100) * 100;
+  } else if (upperType === 'MISSING_ZEBRA_CROSSING') {
+    repairCost = Math.round((2500 + seed * 3500) / 50) * 50;
+  } else if (upperType === 'DAMAGED_SIGNBOARD') {
+    repairCost = Math.round((1800 + seed * 2700) / 50) * 50;
+  } else if (upperType === 'VEHICLE_FLOW' || upperType === 'TRAFFIC_BOTTLENECK') {
+    repairCost = Math.round((4000 + seed * 9500) / 100) * 100;
+  } else if (upperType === 'SCHOOL_CHILDREN_CROSSING') {
+    repairCost = Math.round((3000 + seed * 5000) / 50) * 50;
+  } else if (upperType === 'RASH_DRIVING' || upperType === 'HIT_AND_RUN') {
+    repairCost = Math.round((8000 + seed * 17000) / 100) * 100;
+  } else {
+    repairCost = Math.round((1000 + seed * 2500) / 50) * 50;
+  }
+
+  return { diameterCm, repairCost };
+}
+
 /**
  * 1. Mobile App Ingestion Endpoint
  * Ingests edge-detected road events from paired phones.
@@ -87,23 +136,30 @@ eventsRouter.post('/ingest', async (req: Request, res: Response): Promise<void> 
       }
     }
 
-    const upperType = type.toUpperCase();
-    let finalDiameterCm: number | null =
-      estimatedDiameterCm !== undefined && estimatedDiameterCm !== null ? Number(estimatedDiameterCm) : null;
-    let finalRepairCost: number | null =
-      estimatedRepairCost !== undefined && estimatedRepairCost !== null ? Number(estimatedRepairCost) : null;
-
-    if (upperType === 'POTHOLE' || upperType === 'SURFACE_DAMAGE') {
-      if (finalDiameterCm === null) {
-        const seed = Math.abs(Math.sin(numLat * 1000 + numLon * 1000)) * 40 + 28;
-        finalDiameterCm = Math.round(seed);
-      }
-      if (finalRepairCost === null) {
-        const d = finalDiameterCm;
-        const rawCost = (d / 10) * (d / 10) * 55 + d * 25 + 400;
-        finalRepairCost = Math.max(800, Math.round(rawCost / 50) * 50);
+    // Update district center dynamically based on live real-world GPS position from edge phone
+    if (resolvedDistrictId && numLat !== 0 && numLon !== 0) {
+      try {
+        await prisma.district.update({
+          where: { id: resolvedDistrictId },
+          data: {
+            centerLat: numLat,
+            centerLon: numLon,
+          },
+        });
+      } catch (distUpdateErr) {
+        console.warn('District live GPS update notice:', distUpdateErr);
       }
     }
+
+    const upperType = type.toUpperCase();
+    let rawDiameterCm: number | null =
+      estimatedDiameterCm !== undefined && estimatedDiameterCm !== null ? Number(estimatedDiameterCm) : null;
+    let rawRepairCost: number | null =
+      estimatedRepairCost !== undefined && estimatedRepairCost !== null ? Number(estimatedRepairCost) : null;
+
+    const defectMetrics = calculateDefectMetrics(upperType, rawDiameterCm, rawRepairCost, numLat, numLon);
+    const finalDiameterCm = defectMetrics.diameterCm;
+    const finalRepairCost = defectMetrics.repairCost;
 
     const event = await prisma.roadEvent.create({
       data: {
@@ -440,6 +496,7 @@ eventsRouter.get(
         waterloggingCount,
         vehicleFlowCount,
         activeBusSessions,
+        costAggregation,
       ] = await Promise.all([
         prisma.roadEvent.count({ where: whereClause }),
         prisma.roadEvent.count({ where: { ...whereClause, status: 'NEW' } }),
@@ -459,11 +516,16 @@ eventsRouter.get(
           },
           select: { busLabel: true },
         }),
+        prisma.roadEvent.aggregate({
+          _sum: { estimatedRepairCost: true },
+          where: whereClause,
+        }),
       ]);
 
       const activeBusesCount = new Set(
         activeBusSessions.map((s) => s.busLabel?.trim()).filter(Boolean)
       ).size;
+      const totalRepairCost = costAggregation._sum.estimatedRepairCost || 0;
 
       // Calculate Road Health Index (0 - 100):
       // Higher resolved ratio and lower active defects produce higher score
@@ -490,6 +552,7 @@ eventsRouter.get(
         },
         activeBusesCount,
         roadHealthScore,
+        totalRepairCost,
       });
     } catch (err: any) {
       console.error('Event stats error:', err);

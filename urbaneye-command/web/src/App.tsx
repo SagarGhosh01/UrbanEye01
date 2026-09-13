@@ -48,6 +48,7 @@ const defaultStats: AnalyticsStats = {
   byType: { pothole: 0, roadCrack: 0, surfaceDamage: 0, waterlogging: 0, vehicleFlow: 0 },
   activeBusesCount: 0,
   roadHealthScore: 100,
+  totalRepairCost: 0,
 };
 
 // Data State
