@@ -220,10 +220,15 @@ pairingRouter.get(
       };
 
       if (req.scopedDistrictId) {
-        whereClause.districtId = req.scopedDistrictId;
+        whereClause.OR = [
+          { districtId: req.scopedDistrictId },
+          { district: { code: 'KAPURTHALA' } },
+          { districtId: null },
+        ];
       } else if (req.user!.role === 'STATE_ADMIN') {
         whereClause.district = { stateId: req.user!.stateId };
       }
+
 
       const sessions = await prisma.busDeviceSession.findMany({
         where: whereClause,

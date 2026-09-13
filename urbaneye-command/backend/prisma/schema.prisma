@@ -95,3 +95,94 @@ model RoadEvent {
   @@index([timestamp])
   @@index([type])
 }
+
+model Incident {
+  id              String   @id @default(uuid())
+  category        String   // ACCIDENT | HIT_AND_RUN | RASH_DRIVING | DANGEROUS_DRIVING | VEHICLE_ANOMALY
+  confidence      Float
+  latitude        Float
+  longitude       Float
+  plateText       String?  // Nullable; null outputs "Plate Not Detected"
+  vehicleType     String   // CAR | TRUCK | BUS | TWO_WHEELER | AUTO
+  speedKmh        Float
+  frameTrajectory String   // JSON string of [{ lat, lon, speed, timestamp }]
+  busLabel        String
+  districtId      String
+  imageSnippet    String?  // Base64 JPEG cropped frame snippet
+  status          String   @default("PENDING") // PENDING | ACKNOWLEDGED | ACTIONED | CLOSED
+  authorityNotes  String?
+  timestamp       DateTime @default(now())
+  createdAt       DateTime @default(now())
+
+  @@index([districtId, status])
+  @@index([category])
+}
+
+model VehicleTrack {
+  id            String   @id @default(uuid())
+  trackId       String   @unique
+  plateText     String?  // Nullable
+  vehicleType   String
+  confidence    Float
+  speedKmh      Float
+  trajectory    String   // JSON string of [[lat, lon], ...]
+  lastSeenBus   String
+  districtId    String
+  lastSeenTime  DateTime @default(now())
+  createdAt     DateTime @default(now())
+
+  @@index([districtId])
+}
+
+model SafetyRiskZone {
+  id                    String   @id @default(uuid())
+  zoneName              String
+  category              String   // SCHOOL_ZONE | PEDESTRIAN_CROSSING | BUS_STOP_CROWD
+  riskScore             Float    // 0 to 100
+  riskLevel             String   // LOW | MODERATE | HIGH | CRITICAL
+  latitude              Float
+  longitude             Float
+  radiusMeters          Float    @default(150)
+  pedestrianCount       Int      @default(0)
+  nearMissCount         Int      @default(0)
+  avgSpeedKmh           Float    @default(30)
+  suggestedIntervention String
+  districtId            String
+  updatedAt             DateTime @updatedAt
+  createdAt             DateTime @default(now())
+
+  @@index([districtId, riskLevel])
+}
+
+model PredictiveHotspot {
+  id                    String   @id @default(uuid())
+  locationName          String
+  districtId            String
+  latitude              Float
+  longitude             Float
+  recurrenceCount       Int
+  severityScore         Float
+  maintenancePriority   Float    // 0 to 100
+  primaryDefectType     String   // POTHOLE | ROAD_CRACK | SURFACE_DAMAGE | WATERLOGGING
+  recommendedAction     String
+  createdAt             DateTime @default(now())
+
+  @@index([districtId])
+}
+
+model UrbanRecommendation {
+  id              String   @id @default(uuid())
+  type            String   // WORK_ORDER | TRAFFIC_REROUTE | SAFETY_INTERVENTION
+  title           String
+  description     String
+  urgency         String   // MEDIUM | HIGH | CRITICAL
+  impactScore     Float    // 0 to 100
+  estimatedCostINR Float?
+  districtId      String
+  status          String   @default("PROPOSED") // PROPOSED | APPROVED | DISPATCHED
+  linkedEntityId  String?
+  createdAt       DateTime @default(now())
+
+  @@index([districtId, status])
+}
+

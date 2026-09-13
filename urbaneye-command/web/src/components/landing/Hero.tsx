@@ -38,18 +38,26 @@ export default function Hero({ onLoginClick }: HeroProps) {
 
       {/* Top Floating Navigation Header */}
       <header className="relative z-20 mx-auto w-full max-w-6xl px-4 sm:px-6 pt-4 sm:pt-6 md:px-12 flex items-center justify-between">
-        <div className="flex items-center space-x-2.5 sm:space-x-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl overflow-hidden bg-[#1E7F73]/15 border border-[#1E7F73]/35 shadow-lg shadow-[#1E7F73]/10 shrink-0 backdrop-blur-md">
-            <img src="/logo.png" alt="UrbanEye" className="w-full h-full object-contain p-1" />
+        <div className="flex items-center space-x-3 sm:space-x-3.5">
+          {/* Logo Brandmark Emblem */}
+          <div className="relative group">
+            <div className="absolute -inset-0.5 bg-gradient-to-r from-[#1E7F73] to-[#2dd4bf] rounded-full blur opacity-40 group-hover:opacity-75 transition duration-300"></div>
+            <div className="relative flex h-10 w-10 items-center justify-center rounded-full overflow-hidden bg-[#081325] border border-[#2dd4bf]/40 p-0.5 shadow-md shadow-[#1E7F73]/20">
+              <img src="/logo.png" alt="UrbanEye" className="w-full h-full object-cover rounded-full" />
+            </div>
           </div>
-          <div>
-            <span className="font-display text-base sm:text-lg font-bold tracking-tight text-white flex items-center gap-2">
-              UrbanEye
-              <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-[#1E7F73]/25 text-[#2dd4bf] border border-[#1E7F73]/40">
+
+          <div className="flex flex-col justify-center">
+            <div className="flex items-center gap-2">
+              <span className="font-display text-lg sm:text-xl font-bold tracking-tight text-white leading-none">
+                UrbanEye
+              </span>
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold tracking-wider bg-[#1E7F73]/20 text-[#2dd4bf] border border-[#2dd4bf]/35 shadow-[0_0_10px_rgba(45,212,191,0.15)] uppercase backdrop-blur-md">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#2dd4bf] animate-pulse" />
                 v1.0 LIVE
               </span>
-            </span>
-            <span className="hidden text-[11px] font-semibold sm:inline text-slate-400">
+            </div>
+            <span className="text-[10px] sm:text-[11px] font-medium tracking-wider text-slate-400 uppercase mt-1">
               Ministry of Road Transport & Highways
             </span>
           </div>

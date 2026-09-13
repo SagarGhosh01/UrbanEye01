@@ -110,8 +110,9 @@ export const PairingModal: React.FC<PairingModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 animate-fade-in">
+    <div className="fixed inset-0 z-[9999] bg-black/75 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 animate-fade-in">
       <div className="bg-slate-800 rounded-t-2xl sm:rounded-2xl shadow-2xl max-w-lg w-full border border-slate-700 overflow-hidden flex flex-col max-h-[94dvh] sm:max-h-[90vh] pb-[calc(0.5rem+env(safe-area-inset-bottom))] sm:pb-0">
+
         {/* ── Header ──────────────────────────────────────── */}
         <div className="bg-[#0b2545] p-4 sm:p-5 text-white flex items-center justify-between shrink-0">
           <div className="flex items-center space-x-3">

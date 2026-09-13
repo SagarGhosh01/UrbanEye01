@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { User, State, District, RoadEvent, AnalyticsStats, EventStatus } from './types';
 import { api } from './services/api';
 import { subscribeToDistrict } from './services/socket';
-import { Header } from './components/Header';
+import { Header, ActiveTabType } from './components/Header';
 import { LiveMap } from './components/LiveMap';
 import { DefectTable } from './components/DefectTable';
 import { AnalyticsPanel } from './components/AnalyticsPanel';
@@ -10,10 +10,14 @@ import { PairingModal } from './components/PairingModal';
 import { NationalOverviewView } from './components/NationalOverviewView';
 import { StateOverviewView } from './components/StateOverviewView';
 import { DefectDetailModal } from './components/DefectDetailModal';
+import { TrafficIntelligenceView } from './components/TrafficIntelligenceView';
+import { IncidentResponseView } from './components/IncidentResponseView';
+import { SafetyIntelligenceView } from './components/SafetyIntelligenceView';
+import { PredictiveIntelligenceView } from './components/PredictiveIntelligenceView';
 import { Login } from './pages/Login';
 import { LandingPage } from './pages/LandingPage';
 import { ThemeProvider, useTheme } from './contexts/ThemeContext';
-import { RefreshCw, Radio, BellRing, Sparkles, ArrowLeft } from 'lucide-react';
+import { RefreshCw, Radio, BellRing, Sparkles, ArrowLeft, ShieldAlert, Activity } from 'lucide-react';
 
 export const App: React.FC = () => {
   return (
@@ -33,8 +37,10 @@ const AppInner: React.FC = () => {
 
   // Navigation / Scope State
   const [viewMode, setViewMode] = useState<'NATIONAL' | 'STATE' | 'DISTRICT'>('DISTRICT');
+  const [dashboardTab, setDashboardTab] = useState<ActiveTabType>('DEFECTS');
   const [selectedState, setSelectedState] = useState<State | null>(null);
   const [activeDistrict, setActiveDistrict] = useState<District | null>(null);
+
 
   // Data State
   const [events, setEvents] = useState<RoadEvent[]>([]);
@@ -300,6 +306,8 @@ const AppInner: React.FC = () => {
         onSwitchUser={handleSwitchUser}
         activeBusCount={stats?.activeBusesCount || 0}
         currentBreadcrumbs={breadcrumbs}
+        activeTab={dashboardTab}
+        onTabChange={setDashboardTab}
       />
 
       {/* Live Toast for Incoming Edge Detection */}
@@ -397,147 +405,167 @@ const AppInner: React.FC = () => {
                   <RefreshCw className={`w-3.5 h-3.5 ${loadingData ? 'animate-spin' : ''}`} />
                   <span>Sync Feed</span>
                 </button>
-
-                <button
-                  onClick={() => setIsPairingModalOpen(true)}
-                  className="min-h-[40px] px-4 py-2 text-xs font-semibold rounded-lg bg-[#10233D] hover:bg-slate-800 text-white transition flex items-center space-x-1.5 shadow-sm active:scale-95"
-                >
-                  <span>+ Pair Bus (PIN)</span>
-                </button>
               </div>
             </div>
 
-            {/* Analytics Stats Grid */}
-            <AnalyticsPanel stats={stats} districtName={activeDistrict.name} />
+            {/* View Mode Segmented Switcher for Mobile/Tablet */}
+            <div className="flex lg:hidden items-center p-1 rounded-xl bg-slate-900/80 border border-slate-800 text-xs mb-4">
+              <button
+                type="button"
+                onClick={() => setDashboardTab('DEFECTS')}
+                className={`flex-1 flex items-center justify-center space-x-1.5 py-2 rounded-lg font-bold transition ${
+                  dashboardTab === 'DEFECTS'
+                    ? 'bg-[#1E7F73] text-white shadow-sm'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <ShieldAlert className="w-3.5 h-3.5" />
+                <span>Road Defects</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setDashboardTab('TRAFFIC')}
+                className={`flex-1 flex items-center justify-center space-x-1.5 py-2 rounded-lg font-bold transition ${
+                  dashboardTab === 'TRAFFIC'
+                    ? 'bg-[#1E7F73] text-white shadow-sm'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <Activity className="w-3.5 h-3.5 text-teal-300 animate-pulse" />
+                <span>Traffic Intelligence</span>
+              </button>
+            </div>
 
-            {/* Live Map & Defect Feed Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 mb-6">
-              {/* Map Column (8 cols) */}
-              <div className="lg:col-span-8 flex flex-col">
-                <div className={`p-3 rounded-t-lg border border-b-0 flex items-center justify-between text-xs font-bold ${isDark ? 'bg-slate-800 border-slate-700 text-slate-100' : 'bg-white border-slate-200 text-slate-800'}`}>
-                  <div className="flex items-center space-x-2">
-                    <Radio className="w-4 h-4 text-[#1E7F73] animate-pulse" />
-                    <span className="truncate">Real-Time Geospatial Defect Distribution</span>
-                  </div>
-                  <span className={`text-[11px] font-semibold hidden sm:inline ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-                    {events.length} active pins plotted
-                  </span>
-                </div>
-                <div className="h-[360px] sm:h-[460px]">
-                  <LiveMap
-                    events={events}
-                    centerLat={activeDistrict.centerLat}
-                    centerLon={activeDistrict.centerLon}
-                    zoom={12}
-                    onUpdateStatus={handleUpdateStatus}
-                    onSelectEvent={(ev) => setSelectedEventForDetail(ev)}
-                    latestEventId={latestLiveAlert?.id}
-                  />
-                </div>
-              </div>
+            {/* TAB CONTENT: DEFECTS | TRAFFIC | INCIDENTS | SAFETY | PREDICTIVE */}
+            {dashboardTab === 'TRAFFIC' ? (
+              <TrafficIntelligenceView district={activeDistrict} />
+            ) : dashboardTab === 'INCIDENTS' ? (
+              <IncidentResponseView districtId={activeDistrict.id} />
+            ) : dashboardTab === 'SAFETY' ? (
+              <SafetyIntelligenceView districtId={activeDistrict.id} />
+            ) : dashboardTab === 'PREDICTIVE' ? (
+              <PredictiveIntelligenceView districtId={activeDistrict.id} />
+            ) : (
+              <>
 
-              {/* Real-time Ticker / Recent Detections (4 cols) */}
-              <div className={`lg:col-span-4 rounded-lg border shadow-sm flex flex-col h-[380px] sm:h-[460px] lg:h-[505px] overflow-hidden ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
-                <div className={`p-3 border-b flex items-center justify-between ${isDark ? 'bg-slate-700/50 border-slate-600' : 'bg-slate-50 border-slate-200'}`}>
-                  <div className={`text-xs font-bold flex items-center ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                    <span className="w-2 h-2 rounded-full bg-[#1E7F73] mr-2 animate-pulse"></span>
-                    Live Bus Ingestion Feed
-                  </div>
-                  <span className={`text-[10px] uppercase tracking-wide font-semibold ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-                    Edge Stream
-                  </span>
-                </div>
+                {/* Analytics Stats Grid */}
+                <AnalyticsPanel stats={stats} districtName={activeDistrict.name} />
 
-                <div className="flex-1 overflow-y-auto p-3 space-y-2.5 divide-y divide-slate-100">
-                  {events.length === 0 ? (
-                    <div className="py-12 px-4 flex flex-col items-center justify-center text-center h-full">
-                      {/* Active Listening Radar Graphic */}
-                      <div className="relative w-16 h-16 flex items-center justify-center mb-3">
-                        <div className="absolute inset-0 rounded-full border border-[#1E7F73]/30 animate-ping opacity-75" />
-                        <div className="absolute inset-2 rounded-full border border-[#1E7F73]/50 animate-pulse" />
-                        <div className="w-8 h-8 rounded-full bg-[#1E7F73]/10 border border-[#1E7F73]/30 flex items-center justify-center">
-                          <Radio className="w-4 h-4 text-[#1E7F73] animate-pulse" />
-                        </div>
+                {/* Live Map & Defect Feed Grid */}
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 mb-6">
+                  {/* Map Column (8 cols) */}
+                  <div className="lg:col-span-8 flex flex-col">
+                    <div className={`p-3 rounded-t-lg border border-b-0 flex items-center justify-between text-xs font-bold ${isDark ? 'bg-slate-800 border-slate-700 text-slate-100' : 'bg-white border-slate-200 text-slate-800'}`}>
+                      <div className="flex items-center space-x-2">
+                        <Radio className="w-4 h-4 text-[#1E7F73] animate-pulse" />
+                        <span className="truncate">Real-Time Geospatial Defect Distribution</span>
                       </div>
-
-                      <h4 className={`text-xs font-bold ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
-                        Listening for live bus edge inference...
-                      </h4>
-                      <p className={`text-[11px] mt-1 max-w-[220px] ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-                        Ingestion gateway connected. Stream will populate as bus cameras classify defects.
-                      </p>
-
-                      <div className={`mt-4 flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-[10px] font-medium ${isDark ? 'bg-slate-700 text-slate-300' : 'bg-slate-100 text-slate-600'}`}>
-                        <span className="w-1.5 h-1.5 rounded-full bg-[#1E7F73] animate-pulse inline-block" />
-                        <span>Mesh Socket Active</span>
-                      </div>
-
-                      <button
-                        onClick={() => setIsPairingModalOpen(true)}
-                        className="mt-4 text-[11px] font-bold text-[#1E7F73] hover:underline"
-                      >
-                        + Pair a phone sensor now →
-                      </button>
+                      <span className="text-[10px] text-[#1E7F73] bg-[#1E7F73]/10 px-2 py-0.5 rounded font-mono shrink-0">
+                        Leaflet GIS Active
+                      </span>
                     </div>
-                  ) : (
-                    events.slice(0, 15).map((ev) => (
-                      <div
-                        key={ev.id}
-                        onClick={() => setSelectedEventForDetail(ev)}
-                        className={`pt-2 first:pt-0 flex items-start space-x-2.5 text-xs p-1.5 rounded cursor-pointer transition ${isDark ? 'hover:bg-slate-700/50' : 'hover:bg-slate-50'}`}
-                      >
-                        {ev.imageSnippet ? (
-                          <img
-                            src={ev.imageSnippet.startsWith('data:') ? ev.imageSnippet : `data:image/jpeg;base64,${ev.imageSnippet}`}
-                            alt="Crop"
-                            className="w-12 h-10 object-cover rounded border border-slate-200 shrink-0"
-                          />
-                        ) : (
-                          <div className={`w-12 h-10 rounded border border-dashed shrink-0 flex items-center justify-center text-[10px] ${isDark ? 'bg-slate-700 border-slate-600 text-slate-500' : 'bg-slate-100 border-slate-300 text-slate-400'}`}>
-                            Crop
-                          </div>
-                        )}
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between">
-                            <span className={`font-bold truncate ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                              {ev.type.replace('_', ' ')}
-                            </span>
-                            <span className={`text-[10px] ${isDark ? 'text-slate-400' : 'text-slate-400'}`}>
-                              {new Date(ev.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                            </span>
-                          </div>
-                          <div className={`text-[11px] truncate ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-                            Bus: <strong>{ev.busLabel}</strong> • {Math.round(ev.confidence * 100)}% conf
-                          </div>
-                          <div className={`flex items-center justify-between text-[10px] mt-0.5 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
-                            <span>{ev.latitude.toFixed(4)}, {ev.longitude.toFixed(4)}</span>
-                            <span className={`font-bold uppercase text-[9px] ${
-                              ev.status === 'RESOLVED'
-                                ? 'text-emerald-600'
-                                : ev.status === 'ASSIGNED_FOR_REPAIR'
-                                ? 'text-orange-600'
-                                : 'text-red-600'
-                            }`}>
-                              {ev.status.replace('_', ' ')}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-            </div>
 
-            {/* Defect Management Register Table */}
-            <DefectTable
-              events={events}
-              onUpdateStatus={handleUpdateStatus}
-              onSelectEvent={(ev) => setSelectedEventForDetail(ev)}
-              onDeleteEvent={handleDeleteEvent}
-              onPurgeEvents={handlePurgeEvents}
-              isLoading={loadingData}
-            />
+                    <div className="h-[380px] sm:h-[450px] w-full rounded-b-lg border overflow-hidden relative shadow-inner">
+                      <LiveMap
+                        events={events}
+                        centerLat={activeDistrict.centerLat}
+                        centerLon={activeDistrict.centerLon}
+                        zoom={12}
+                        onUpdateStatus={handleUpdateStatus}
+                        onSelectEvent={(ev) => setSelectedEventForDetail(ev)}
+                        latestEventId={latestLiveAlert?.id}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Realtime Detection Activity Stream (4 cols) */}
+                  <div className="lg:col-span-4 flex flex-col">
+                    <div className={`p-3 rounded-t-lg border border-b-0 flex items-center justify-between text-xs font-bold ${isDark ? 'bg-slate-800 border-slate-700 text-slate-100' : 'bg-white border-slate-200 text-slate-800'}`}>
+                      <div className="flex items-center space-x-2">
+                        <Radio className="w-4 h-4 text-emerald-500 animate-ping" />
+                        <span>Live Telemetry Stream</span>
+                      </div>
+                      <span className="text-[10px] text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded font-mono">
+                        {events.length} Events
+                      </span>
+                    </div>
+
+                    <div className={`flex-1 rounded-b-lg border p-3 overflow-y-auto max-h-[380px] sm:max-h-[450px] space-y-2.5 ${isDark ? 'bg-slate-800/40 border-slate-700' : 'bg-white border-slate-200'}`}>
+                      {events.length === 0 ? (
+                        <div className="h-full flex flex-col items-center justify-center p-6 text-center text-slate-400">
+                          <Radio className="w-8 h-8 mb-2 opacity-50 animate-pulse text-[#1E7F73]" />
+                          <p className="text-xs font-semibold text-slate-300">Listening on Mesh Socket</p>
+                          <p className="text-[11px] text-slate-400 mt-1 max-w-[200px]">
+                            Pair a mobile phone sensor to stream live road defect telemetry into this command view.
+                          </p>
+                          <button
+                            onClick={() => setIsPairingModalOpen(true)}
+                            className="mt-3 px-3 py-1.5 text-xs font-bold rounded bg-[#1E7F73] text-white hover:bg-[#186a60] transition shadow-sm"
+                          >
+                            + Pair Bus Sensor
+                          </button>
+                        </div>
+                      ) : (
+                        events.slice(0, 15).map((ev) => (
+                          <div
+                            key={ev.id}
+                            onClick={() => setSelectedEventForDetail(ev)}
+                            className={`pt-2 first:pt-0 flex items-start space-x-2.5 text-xs p-1.5 rounded cursor-pointer transition ${isDark ? 'hover:bg-slate-700/50' : 'hover:bg-slate-50'}`}
+                          >
+                            {ev.imageSnippet ? (
+                              <img
+                                src={ev.imageSnippet.startsWith('data:') ? ev.imageSnippet : `data:image/jpeg;base64,${ev.imageSnippet}`}
+                                alt="Crop"
+                                className="w-12 h-10 object-cover rounded border border-slate-200 shrink-0"
+                              />
+                            ) : (
+                              <div className={`w-12 h-10 rounded border border-dashed shrink-0 flex items-center justify-center text-[10px] ${isDark ? 'bg-slate-700 border-slate-600 text-slate-500' : 'bg-slate-100 border-slate-300 text-slate-400'}`}>
+                                Crop
+                              </div>
+                            )}
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between">
+                                <span className={`font-bold truncate ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                                  {ev.type.replace('_', ' ')}
+                                </span>
+                                <span className={`text-[10px] ${isDark ? 'text-slate-400' : 'text-slate-400'}`}>
+                                  {new Date(ev.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                </span>
+                              </div>
+                              <div className={`text-[11px] truncate ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                                Bus: <strong>{ev.busLabel}</strong> • {Math.round(ev.confidence * 100)}% conf
+                              </div>
+                              <div className={`flex items-center justify-between text-[10px] mt-0.5 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
+                                <span>{ev.latitude.toFixed(4)}, {ev.longitude.toFixed(4)}</span>
+                                <span className={`font-bold uppercase text-[9px] ${
+                                  ev.status === 'RESOLVED'
+                                    ? 'text-emerald-600'
+                                    : ev.status === 'ASSIGNED_FOR_REPAIR'
+                                    ? 'text-orange-600'
+                                    : 'text-red-600'
+                                }`}>
+                                  {ev.status.replace('_', ' ')}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Defect Management Register Table */}
+                <DefectTable
+                  events={events}
+                  onUpdateStatus={handleUpdateStatus}
+                  onSelectEvent={(ev) => setSelectedEventForDetail(ev)}
+                  onDeleteEvent={handleDeleteEvent}
+                  onPurgeEvents={handlePurgeEvents}
+                  isLoading={loadingData}
+                />
+              </>
+            )}
           </div>
         )}
       </main>

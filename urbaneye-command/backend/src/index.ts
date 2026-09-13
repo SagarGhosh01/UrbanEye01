@@ -9,6 +9,11 @@ import { authRouter } from './auth/auth.router.js';
 import { pairingRouter } from './pairing/pairing.router.js';
 import { eventsRouter } from './events/events.router.js';
 import { geographyRouter } from './geography/geography.router.js';
+import { trafficRouter } from './traffic/traffic.router.js';
+import { incidentsRouter } from './incidents/incidents.router.js';
+import { safetyRouter } from './safety/safety.router.js';
+import { predictiveRouter } from './predictive/predictive.router.js';
+import { modelsRouter } from './models/models.router.js';
 
 dotenv.config();
 
@@ -38,6 +43,13 @@ app.use('/api/events', eventsRouter);
 app.use('/api/detections', eventsRouter);
 app.use('/detections', eventsRouter);
 app.use('/api/geography', geographyRouter);
+app.use('/api/traffic', trafficRouter);
+app.use('/api/incidents', incidentsRouter);
+app.use('/api/safety', safetyRouter);
+app.use('/api/predictive', predictiveRouter);
+app.use('/api/models', modelsRouter);
+
+
 
 app.get('/api/health', (req, res) => {
   res.json({

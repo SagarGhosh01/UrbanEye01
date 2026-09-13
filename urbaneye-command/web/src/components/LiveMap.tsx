@@ -13,6 +13,13 @@ interface LiveMapProps {
   onUpdateStatus?: (eventId: string, status: EventStatus, notes?: string) => void;
   onSelectEvent?: (event: RoadEvent) => void;
   latestEventId?: string | null;
+  activeLayerFilters?: {
+    defects?: boolean;
+    traffic?: boolean;
+    incidents?: boolean;
+    vruSafety?: boolean;
+    predictive?: boolean;
+  };
 }
 
 const STATUS_METADATA: Record<EventStatus, { bg: string; text: string; label: string; symbol: string }> = {
@@ -30,14 +37,27 @@ export const LiveMap: React.FC<LiveMapProps> = ({
   onUpdateStatus,
   onSelectEvent,
   latestEventId,
+  activeLayerFilters = { defects: true, traffic: true, incidents: true, vruSafety: true, predictive: true },
 }) => {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const markersLayerRef = useRef<L.LayerGroup | null>(null);
+  const incidentsLayerRef = useRef<L.LayerGroup | null>(null);
+  const vruLayerRef = useRef<L.LayerGroup | null>(null);
   const pulseCircleRef = useRef<L.CircleMarker | null>(null);
 
-  // Collapsible legend state (collapsed by default on small screens, expanded on md+)
+  // Layer toggle state
+  const [layers, setLayers] = useState({
+    defects: activeLayerFilters.defects ?? true,
+    traffic: activeLayerFilters.traffic ?? true,
+    incidents: activeLayerFilters.incidents ?? true,
+    vruSafety: activeLayerFilters.vruSafety ?? true,
+    predictive: activeLayerFilters.predictive ?? true,
+  });
+
+  // Collapsible legend state
   const [legendOpen, setLegendOpen] = useState(false);
+
 
   // Initialize Map
   useEffect(() => {
@@ -281,6 +301,67 @@ export const LiveMap: React.FC<LiveMapProps> = ({
     <div className="relative w-full h-full min-h-[360px] sm:min-h-[460px] bg-slate-100 rounded-lg shadow-sm border border-slate-200 overflow-hidden">
       <div ref={mapContainerRef} className="w-full h-full" />
 
+      {/* Top Right GIS Layer Controls Toggle Panel */}
+      <div className="absolute top-3 right-3 z-30">
+        <div className="bg-slate-900/90 backdrop-blur-md border border-white/10 rounded-xl shadow-xl p-2.5 text-xs text-white space-y-1.5 min-w-[180px]">
+
+          <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 border-b border-white/10 pb-1 flex items-center justify-between">
+            <span>GIS Map Layers</span>
+            <Layers className="w-3 h-3 text-teal-400" />
+          </div>
+
+          <label className="flex items-center space-x-2 cursor-pointer text-[11px] font-medium text-slate-200">
+            <input
+              type="checkbox"
+              checked={layers.defects}
+              onChange={(e) => setLayers({ ...layers, defects: e.target.checked })}
+              className="rounded text-teal-500 focus:ring-0"
+            />
+            <span>🛠️ Road Defects</span>
+          </label>
+
+          <label className="flex items-center space-x-2 cursor-pointer text-[11px] font-medium text-slate-200">
+            <input
+              type="checkbox"
+              checked={layers.traffic}
+              onChange={(e) => setLayers({ ...layers, traffic: e.target.checked })}
+              className="rounded text-teal-500 focus:ring-0"
+            />
+            <span>🚗 Traffic Flow</span>
+          </label>
+
+          <label className="flex items-center space-x-2 cursor-pointer text-[11px] font-medium text-slate-200">
+            <input
+              type="checkbox"
+              checked={layers.incidents}
+              onChange={(e) => setLayers({ ...layers, incidents: e.target.checked })}
+              className="rounded text-teal-500 focus:ring-0"
+            />
+            <span>🚨 Incidents & ANPR</span>
+          </label>
+
+          <label className="flex items-center space-x-2 cursor-pointer text-[11px] font-medium text-slate-200">
+            <input
+              type="checkbox"
+              checked={layers.vruSafety}
+              onChange={(e) => setLayers({ ...layers, vruSafety: e.target.checked })}
+              className="rounded text-teal-500 focus:ring-0"
+            />
+            <span>🚶 VRU Safety Risk</span>
+          </label>
+
+          <label className="flex items-center space-x-2 cursor-pointer text-[11px] font-medium text-slate-200">
+            <input
+              type="checkbox"
+              checked={layers.predictive}
+              onChange={(e) => setLayers({ ...layers, predictive: e.target.checked })}
+              className="rounded text-teal-500 focus:ring-0"
+            />
+            <span>🔮 Predictive Risk</span>
+          </label>
+        </div>
+      </div>
+
       {/* Map Status Legend Overlay: Collapsible on Mobile, Permanent on Desktop */}
       <div className="absolute bottom-4 left-3 sm:left-4 z-[500] max-w-[240px]">
         {legendOpen ? (
@@ -335,3 +416,4 @@ export const LiveMap: React.FC<LiveMapProps> = ({
     </div>
   );
 };
+

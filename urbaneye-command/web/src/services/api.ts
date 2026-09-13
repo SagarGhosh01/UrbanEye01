@@ -170,4 +170,51 @@ export const api = {
     }
     return res.json();
   },
+
+  // Generic HTTP helpers
+
+  async get(url: string, options?: { params?: Record<string, any> }) {
+    let fullUrl = `${API_BASE}${url}`;
+    if (options?.params) {
+      const q = new URLSearchParams();
+      Object.entries(options.params).forEach(([k, v]) => {
+        if (v !== undefined && v !== null) q.set(k, String(v));
+      });
+      const qStr = q.toString();
+      if (qStr) fullUrl += `?${qStr}`;
+    }
+    const res = await fetch(fullUrl, { headers: getHeaders() });
+    if (!res.ok) throw new Error(`GET ${url} failed`);
+    return { data: await res.json() };
+  },
+
+  async post(url: string, body?: any) {
+    const res = await fetch(`${API_BASE}${url}`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: body ? JSON.stringify(body) : undefined,
+    });
+    if (!res.ok) throw new Error(`POST ${url} failed`);
+    return { data: await res.json() };
+  },
+
+  async patch(url: string, body?: any) {
+    const res = await fetch(`${API_BASE}${url}`, {
+      method: 'PATCH',
+      headers: getHeaders(),
+      body: body ? JSON.stringify(body) : undefined,
+    });
+    if (!res.ok) throw new Error(`PATCH ${url} failed`);
+    return { data: await res.json() };
+  },
+
+  async del(url: string) {
+    const res = await fetch(`${API_BASE}${url}`, {
+      method: 'DELETE',
+      headers: getHeaders(),
+    });
+    if (!res.ok) throw new Error(`DELETE ${url} failed`);
+    return { data: await res.json() };
+  },
 };
+
