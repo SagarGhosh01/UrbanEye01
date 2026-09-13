@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { User, Role } from '../types';
-import { Bus, LogOut, Radio, ChevronRight, MapPin, Menu, X, ShieldAlert, Activity, AlertTriangle, School, Sparkles } from 'lucide-react';
+import { Bus, LogOut, Radio, ChevronRight, MapPin, Menu, X, ShieldAlert, Activity, AlertTriangle, School, Sparkles, Camera } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 
 export type ActiveTabType = 'DEFECTS' | 'TRAFFIC' | 'INCIDENTS' | 'SAFETY' | 'PREDICTIVE';
@@ -9,6 +9,7 @@ interface HeaderProps {
   user: User;
   onLogout: () => void;
   onOpenPairing: () => void;
+  onOpenLiveCamera?: () => void;
   onSwitchUser?: (email: string) => void;
   activeBusCount?: number;
   currentBreadcrumbs?: { label: string; onClick?: () => void }[];
@@ -20,6 +21,7 @@ export const Header: React.FC<HeaderProps> = ({
   user,
   onLogout,
   onOpenPairing,
+  onOpenLiveCamera,
   onSwitchUser,
   activeBusCount = 0,
   currentBreadcrumbs = [],
@@ -147,6 +149,20 @@ export const Header: React.FC<HeaderProps> = ({
               {currentJurisdictionLabel}
             </span>
           </div>
+
+          {/* Live Phone Camera Sensor Button */}
+          {onOpenLiveCamera && (
+            <button
+              type="button"
+              onClick={onOpenLiveCamera}
+              className="flex items-center justify-center space-x-1.5 px-3 py-1.5 text-xs font-bold rounded-lg bg-teal-600 hover:bg-teal-700 text-white shadow-sm transition active:scale-95 shrink-0"
+              title="Open Live Phone / Web Camera Sensor for Real-Time Edge AI Detection"
+              aria-label="Open Live Phone Camera"
+            >
+              <Camera className="w-3.5 h-3.5 shrink-0 text-amber-300 animate-pulse" />
+              <span className="hidden sm:inline">Live Camera (Phone)</span>
+            </button>
+          )}
 
           {/* Primary Action: Pair Bus (PIN) */}
           <button

@@ -7,6 +7,7 @@ import { LiveMap } from './components/LiveMap';
 import { DefectTable } from './components/DefectTable';
 import { AnalyticsPanel } from './components/AnalyticsPanel';
 import { PairingModal } from './components/PairingModal';
+import { LiveCameraModal } from './components/LiveCameraModal';
 import { NationalOverviewView } from './components/NationalOverviewView';
 import { StateOverviewView } from './components/StateOverviewView';
 import { DefectDetailModal } from './components/DefectDetailModal';
@@ -56,6 +57,7 @@ const defaultStats: AnalyticsStats = {
   const [stats, setStats] = useState<AnalyticsStats>(defaultStats);
   const [loadingData, setLoadingData] = useState(false);
   const [isPairingModalOpen, setIsPairingModalOpen] = useState(false);
+  const [isLiveCameraOpen, setIsLiveCameraOpen] = useState(false);
   const [latestLiveAlert, setLatestLiveAlert] = useState<RoadEvent | null>(null);
   const [selectedEventForDetail, setSelectedEventForDetail] = useState<RoadEvent | null>(null);
 
@@ -374,6 +376,7 @@ const defaultStats: AnalyticsStats = {
         user={user}
         onLogout={handleLogout}
         onOpenPairing={() => setIsPairingModalOpen(true)}
+        onOpenLiveCamera={() => setIsLiveCameraOpen(true)}
         onSwitchUser={handleSwitchUser}
         activeBusCount={stats?.activeBusesCount || 0}
         currentBreadcrumbs={breadcrumbs}
@@ -664,6 +667,15 @@ const defaultStats: AnalyticsStats = {
         onUpdateStatus={handleUpdateStatus}
         onDelete={handleDeleteEvent}
         readOnly={user.role === 'STATE_ADMIN' && false}
+      />
+
+      {/* Live Phone Camera Sensor Modal */}
+      <LiveCameraModal
+        isOpen={isLiveCameraOpen}
+        onClose={() => setIsLiveCameraOpen(false)}
+        onEventIngested={() => {
+          if (activeDistrict) refreshDistrictData();
+        }}
       />
     </div>
   );
