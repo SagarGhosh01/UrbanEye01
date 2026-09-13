@@ -49,22 +49,22 @@ export const Header: React.FC<HeaderProps> = ({
     <header className={`text-white border-b sticky top-0 z-40 shadow-sm transition-colors duration-300 ${
       isDark ? 'bg-[#10233D] border-slate-800' : 'bg-white border-slate-200 text-slate-800'
     }`}>
-      <div className="w-full max-w-[1920px] mx-auto px-4 sm:px-8 py-3 sm:py-3.5 flex items-center justify-between gap-4 sm:gap-6">
+      <div className="w-full max-w-[1920px] mx-auto px-3 sm:px-6 py-2 flex items-center justify-between gap-3 sm:gap-4">
         {/* Left: Brandmark */}
-        <div className="flex items-center space-x-3 shrink-0">
-          <div className="flex items-center space-x-2.5 shrink-0">
-            <div className={`w-9 h-9 rounded-full overflow-hidden border flex items-center justify-center p-0.5 shadow-md transition ${
+        <div className="flex items-center space-x-2 shrink-0">
+          <div className="flex items-center space-x-2 shrink-0">
+            <div className={`w-8 h-8 rounded-full overflow-hidden border flex items-center justify-center p-0.5 shadow-sm transition ${
               isDark ? 'bg-[#081325] border-[#2dd4bf]/40 shadow-[#1E7F73]/20' : 'bg-white border-teal-500/30 shadow-teal-500/10'
             }`}>
               <img src="/logo.png" alt="UrbanEye" className="w-full h-full object-cover rounded-full" />
             </div>
-            <div className="flex items-center space-x-2 shrink-0">
-              <span className={`font-extrabold text-base sm:text-lg tracking-tight ${
+            <div className="flex items-center space-x-1.5 shrink-0">
+              <span className={`font-bold text-sm sm:text-base tracking-tight ${
                 isDark ? 'text-white' : 'text-slate-800'
               }`}>
                 UrbanEye
               </span>
-              <span className={`hidden sm:inline-flex items-center gap-1.5 text-[10px] font-mono font-bold tracking-wider px-2 py-0.5 rounded-full uppercase transition ${
+              <span className={`hidden sm:inline-flex items-center gap-1 text-[9px] font-mono font-bold tracking-wider px-1.5 py-0.5 rounded-full uppercase transition ${
                 isDark
                   ? 'text-[#2dd4bf] bg-[#1E7F73]/20 border border-[#2dd4bf]/30 shadow-[0_0_8px_rgba(45,212,191,0.15)]'
                   : 'text-teal-700 bg-teal-50 border border-teal-200'
@@ -76,99 +76,74 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
         </div>
 
-        {/* Center: Sleek Cyber-Glow & Active Underline Navigation Tabs */}
+        {/* Center: Sleek Compact Navigation Tabs (Zero Scrollbar) */}
         {onTabChange && (
-          <nav className="hidden lg:flex items-center space-x-1 sm:space-x-2 shrink min-w-0 overflow-x-auto scrollbar-none max-w-full py-1">
+          <div className="hidden md:flex items-center p-1 gap-1 rounded-xl bg-slate-900/90 border border-slate-800 text-xs shrink-0 overflow-hidden shadow-inner">
             <button
               type="button"
               onClick={() => onTabChange('DEFECTS')}
-              className={`relative flex items-center space-x-2 px-3 sm:px-3.5 py-2 rounded-xl text-xs font-bold transition-all duration-200 shrink-0 ${
-                activeTab === 'DEFECTS'
-                  ? 'text-[#2dd4bf] bg-[#1E7F73]/15 border border-[#2dd4bf]/30 shadow-[0_0_12px_rgba(45,212,191,0.15)]'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40 border border-transparent'
+              className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg font-bold text-xs whitespace-nowrap shrink-0 transition-all ${
+                activeTab === 'DEFECTS' ? 'bg-[#1E7F73] text-white shadow-sm' : 'text-slate-400 hover:text-white hover:bg-slate-800/40'
               }`}
             >
-              <ShieldAlert className="w-4 h-4 shrink-0 text-[#2dd4bf]" />
+              <ShieldAlert className="w-3.5 h-3.5 shrink-0" />
               <span>Road Defects</span>
-              {activeTab === 'DEFECTS' && (
-                <span className="absolute bottom-[-2px] left-2 right-2 h-[2.5px] rounded-full bg-[#2dd4bf] shadow-[0_0_8px_#2dd4bf]" />
-              )}
             </button>
 
             <button
               type="button"
               onClick={() => onTabChange('TRAFFIC')}
-              className={`relative flex items-center space-x-2 px-3 sm:px-3.5 py-2 rounded-xl text-xs font-bold transition-all duration-200 shrink-0 ${
-                activeTab === 'TRAFFIC'
-                  ? 'text-[#2dd4bf] bg-[#1E7F73]/15 border border-[#2dd4bf]/30 shadow-[0_0_12px_rgba(45,212,191,0.15)]'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40 border border-transparent'
+              className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg font-bold text-xs whitespace-nowrap shrink-0 transition-all ${
+                activeTab === 'TRAFFIC' ? 'bg-[#1E7F73] text-white shadow-sm' : 'text-slate-400 hover:text-white hover:bg-slate-800/40'
               }`}
             >
-              <Activity className="w-4 h-4 text-teal-400 animate-pulse shrink-0" />
+              <Activity className="w-3.5 h-3.5 text-teal-300 animate-pulse shrink-0" />
               <span>Traffic Flow</span>
-              {activeTab === 'TRAFFIC' && (
-                <span className="absolute bottom-[-2px] left-2 right-2 h-[2.5px] rounded-full bg-[#2dd4bf] shadow-[0_0_8px_#2dd4bf]" />
-              )}
             </button>
 
             <button
               type="button"
               onClick={() => onTabChange('INCIDENTS')}
-              className={`relative flex items-center space-x-2 px-3 sm:px-3.5 py-2 rounded-xl text-xs font-bold transition-all duration-200 shrink-0 ${
-                activeTab === 'INCIDENTS'
-                  ? 'text-[#2dd4bf] bg-[#1E7F73]/15 border border-[#2dd4bf]/30 shadow-[0_0_12px_rgba(45,212,191,0.15)]'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40 border border-transparent'
+              className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg font-bold text-xs whitespace-nowrap shrink-0 transition-all ${
+                activeTab === 'INCIDENTS' ? 'bg-[#1E7F73] text-white shadow-sm' : 'text-slate-400 hover:text-white hover:bg-slate-800/40'
               }`}
             >
-              <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
+              <AlertTriangle className="w-3.5 h-3.5 text-red-400 shrink-0" />
               <span>Incidents & ANPR</span>
-              {activeTab === 'INCIDENTS' && (
-                <span className="absolute bottom-[-2px] left-2 right-2 h-[2.5px] rounded-full bg-[#2dd4bf] shadow-[0_0_8px_#2dd4bf]" />
-              )}
             </button>
 
             <button
               type="button"
               onClick={() => onTabChange('SAFETY')}
-              className={`relative flex items-center space-x-2 px-3 sm:px-3.5 py-2 rounded-xl text-xs font-bold transition-all duration-200 shrink-0 ${
-                activeTab === 'SAFETY'
-                  ? 'text-[#2dd4bf] bg-[#1E7F73]/15 border border-[#2dd4bf]/30 shadow-[0_0_12px_rgba(45,212,191,0.15)]'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40 border border-transparent'
+              className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg font-bold text-xs whitespace-nowrap shrink-0 transition-all ${
+                activeTab === 'SAFETY' ? 'bg-[#1E7F73] text-white shadow-sm' : 'text-slate-400 hover:text-white hover:bg-slate-800/40'
               }`}
             >
-              <School className="w-4 h-4 text-yellow-400 shrink-0" />
+              <School className="w-3.5 h-3.5 text-yellow-300 shrink-0" />
               <span>VRU Safety</span>
-              {activeTab === 'SAFETY' && (
-                <span className="absolute bottom-[-2px] left-2 right-2 h-[2.5px] rounded-full bg-[#2dd4bf] shadow-[0_0_8px_#2dd4bf]" />
-              )}
             </button>
 
             <button
               type="button"
               onClick={() => onTabChange('PREDICTIVE')}
-              className={`relative flex items-center space-x-2 px-3 sm:px-3.5 py-2 rounded-xl text-xs font-bold transition-all duration-200 shrink-0 ${
-                activeTab === 'PREDICTIVE'
-                  ? 'text-[#2dd4bf] bg-[#1E7F73]/15 border border-[#2dd4bf]/30 shadow-[0_0_12px_rgba(45,212,191,0.15)]'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40 border border-transparent'
+              className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg font-bold text-xs whitespace-nowrap shrink-0 transition-all ${
+                activeTab === 'PREDICTIVE' ? 'bg-[#1E7F73] text-white shadow-sm' : 'text-slate-400 hover:text-white hover:bg-slate-800/40'
               }`}
             >
-              <Sparkles className="w-4 h-4 text-teal-300 shrink-0" />
+              <Sparkles className="w-3.5 h-3.5 text-teal-300 shrink-0" />
               <span>Predictive AI</span>
-              {activeTab === 'PREDICTIVE' && (
-                <span className="absolute bottom-[-2px] left-2 right-2 h-[2.5px] rounded-full bg-[#2dd4bf] shadow-[0_0_8px_#2dd4bf]" />
-              )}
             </button>
-          </nav>
+          </div>
         )}
 
         {/* Right Side: Jurisdiction & User Actions */}
-        <div className="flex items-center gap-3 shrink-0">
+        <div className="flex items-center space-x-2 shrink-0">
           {/* Desktop Jurisdiction Scope */}
-          <div className={`hidden 2xl:flex items-center space-x-1.5 px-3 py-1.5 rounded-lg border text-xs shrink-0 ${
-            isDark ? 'bg-slate-900/60 border-slate-800 text-slate-300' : 'bg-slate-100 border-slate-200 text-slate-700'
+          <div className={`hidden 2xl:flex items-center space-x-1 text-xs shrink-0 ${
+            isDark ? 'text-slate-300' : 'text-slate-600'
           }`}>
             <MapPin className="w-3.5 h-3.5 text-[#1E7F73] shrink-0" />
-            <span className="font-semibold text-slate-200 truncate max-w-[160px]">
+            <span className="font-semibold text-slate-200 truncate max-w-[140px]">
               {currentJurisdictionLabel}
             </span>
           </div>
@@ -177,11 +152,11 @@ export const Header: React.FC<HeaderProps> = ({
           <button
             type="button"
             onClick={onOpenPairing}
-            className="flex items-center justify-center space-x-2 px-4 py-2 text-xs font-bold rounded-lg bg-[#1E7F73] hover:bg-[#186a60] text-white shadow-md hover:shadow-[#1E7F73]/20 transition-all active:scale-95 shrink-0"
+            className="flex items-center justify-center space-x-1.5 px-3 py-1.5 text-xs font-bold rounded-lg bg-[#1E7F73] hover:bg-[#186a60] text-white shadow-sm transition active:scale-95 shrink-0"
             title="Pair a bus-mounted phone sensor using 6-digit PIN"
             aria-label="Pair Bus using 6-digit PIN"
           >
-            <Bus className="w-4 h-4 shrink-0" />
+            <Bus className="w-3.5 h-3.5 shrink-0" />
             <span className="hidden sm:inline">Pair Bus (PIN)</span>
           </button>
 
@@ -191,7 +166,8 @@ export const Header: React.FC<HeaderProps> = ({
               <select
                 onChange={(e) => onSwitchUser(e.target.value)}
                 value={user.email}
-                className="text-xs font-semibold rounded-lg px-3 py-2 border border-slate-700 bg-slate-800/90 text-slate-200 hover:border-slate-600 focus:outline-none focus:ring-2 focus:ring-[#1E7F73] transition cursor-pointer max-w-[190px] truncate"
+                className="text-[11px] font-medium rounded-lg px-2 py-1.5 border focus:outline-none focus:ring-1 focus:ring-[#1E7F73] cursor-pointer max-w-[170px] truncate"
+                style={{ backgroundColor: '#1e293b', color: '#e2e8f0', borderColor: '#334155' }}
                 title="Switch test persona"
                 aria-label="Switch test persona"
               >
@@ -209,8 +185,8 @@ export const Header: React.FC<HeaderProps> = ({
           <button
             type="button"
             onClick={onLogout}
-            className={`hidden md:flex items-center justify-center p-2 rounded-lg transition-all ${
-              isDark ? 'text-slate-400 hover:text-white hover:bg-slate-800' : 'text-slate-500 hover:text-slate-800 hover:bg-slate-100'
+            className={`hidden md:flex items-center justify-center p-1.5 rounded-lg transition ${
+              isDark ? 'text-slate-400 hover:text-white hover:bg-white/10' : 'text-slate-500 hover:text-slate-800 hover:bg-slate-100'
             }`}
             title="Logout"
             aria-label="Logout"
