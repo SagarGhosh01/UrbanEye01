@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { prisma } from '../prisma.js';
 import { requireAuth, AuthenticatedRequest, enforceDistrictScope } from '../middleware/auth.middleware.js';
 import { emitNewRoadEvent, emitRoadEventUpdated, emitRoadEventDeleted } from '../realtime/socket.js';
+import { IN_MEMORY_SESSIONS } from '../pairing/pairing.router.js';
 
 export const eventsRouter = Router();
 
@@ -32,19 +33,28 @@ eventsRouter.post('/ingest', async (req: Request, res: Response): Promise<void> 
     }
 
     // 1. Verify session exists and is active PAIRED
-    const session = await prisma.busDeviceSession.findUnique({
-      where: { id: deviceSessionId },
-      include: {
-        district: true,
-      },
-    });
+    let session: any = null;
+    try {
+      session = await prisma.busDeviceSession.findUnique({
+        where: { id: deviceSessionId },
+        include: {
+          district: true,
+        },
+      });
+    } catch (dbErr) {
+      console.warn('Prisma session lookup in ingest failed, checking memory:', (dbErr as Error).message);
+    }
+
+    if (!session) {
+      session = IN_MEMORY_SESSIONS.get(deviceSessionId);
+    }
 
     if (!session) {
       res.status(404).json({ error: 'Unrecognized device session ID. Please pair device.' });
       return;
     }
 
-    if (session.status !== 'PAIRED' || !session.districtId) {
+    if (session.status !== 'PAIRED' || (!session.districtId && !session.district)) {
       res.status(403).json({ error: 'Device session is not paired to any district. Events cannot be accepted.' });
       return;
     }

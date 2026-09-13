@@ -28,6 +28,14 @@ app.use(cors({ origin: '*' }));
 app.use(express.json({ limit: '15mb' }));
 app.use(express.urlencoded({ extended: true, limit: '15mb' }));
 
+// URL Normalizer: Strip duplicate slashes (e.g. //api/pairing/request -> /api/pairing/request)
+app.use((req, res, next) => {
+  if (req.url.startsWith('//')) {
+    req.url = req.url.replace(/^\/+/, '/');
+  }
+  next();
+});
+
 // Request logger
 app.use((req, res, next) => {
   if (req.method !== 'GET' || !req.url.startsWith('/api/pairing/status')) {
