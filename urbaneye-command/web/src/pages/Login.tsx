@@ -353,15 +353,15 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess, onBack }) => {
               <input
                 type="email"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
                 required
                 placeholder="officer@urbaneye.gov.in"
                 style={inputStyle}
-                onFocus={(e) => {
+                onFocus={(e: React.FocusEvent<HTMLInputElement>) => {
                   e.target.style.borderColor = '#2dd4bf';
                   e.target.style.boxShadow = '0 0 12px rgba(45,212,191,0.2)';
                 }}
-                onBlur={(e) => {
+                onBlur={(e: React.FocusEvent<HTMLInputElement>) => {
                   e.target.style.borderColor = inputBdr;
                   e.target.style.boxShadow = 'none';
                 }}
@@ -388,22 +388,22 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess, onBack }) => {
                 <input
                   type={showPassword ? 'text' : 'password'}
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
                   required
                   placeholder="••••••••"
                   style={{ ...inputStyle, paddingRight: '44px' }}
-                  onFocus={(e) => {
+                  onFocus={(e: React.FocusEvent<HTMLInputElement>) => {
                     e.target.style.borderColor = '#2dd4bf';
                     e.target.style.boxShadow = '0 0 12px rgba(45,212,191,0.2)';
                   }}
-                  onBlur={(e) => {
+                  onBlur={(e: React.FocusEvent<HTMLInputElement>) => {
                     e.target.style.borderColor = inputBdr;
                     e.target.style.boxShadow = 'none';
                   }}
                 />
                 <button
                   type="button"
-                  onClick={() => setShowPassword(v => !v)}
+                  onClick={() => setShowPassword((v: boolean) => !v)}
                   aria-label={showPassword ? 'Hide password' : 'Show password'}
                   style={{
                     position: 'absolute',
@@ -421,8 +421,8 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess, onBack }) => {
                     borderRadius: '0 10px 10px 0',
                     transition: 'color 0.15s',
                   }}
-                  onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = '#2dd4bf'; }}
-                  onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = iconClr; }}
+                  onMouseEnter={(e: React.MouseEvent<HTMLButtonElement>) => { (e.currentTarget as HTMLButtonElement).style.color = '#2dd4bf'; }}
+                  onMouseLeave={(e: React.MouseEvent<HTMLButtonElement>) => { (e.currentTarget as HTMLButtonElement).style.color = iconClr; }}
                 >
                   {showPassword
                     ? <EyeOff style={{ width: 16, height: 16 }} />
@@ -455,14 +455,14 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess, onBack }) => {
                 boxShadow: '0 6px 20px rgba(30,127,115,0.35)',
                 transition: 'all 0.2s',
               }}
-              onMouseEnter={(e) => {
+              onMouseEnter={(e: React.MouseEvent<HTMLButtonElement>) => {
                 if (!loading) {
                   (e.currentTarget as HTMLButtonElement).style.background = 'linear-gradient(135deg, #249588 0%, #1a7f74 100%)';
                   (e.currentTarget as HTMLButtonElement).style.boxShadow = '0 8px 25px rgba(30,127,115,0.45)';
                   (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(-1px)';
                 }
               }}
-              onMouseLeave={(e) => {
+              onMouseLeave={(e: React.MouseEvent<HTMLButtonElement>) => {
                 (e.currentTarget as HTMLButtonElement).style.background = 'linear-gradient(135deg, #1E7F73 0%, #166c62 100%)';
                 (e.currentTarget as HTMLButtonElement).style.boxShadow = '0 6px 20px rgba(30,127,115,0.35)';
                 (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(0)';
@@ -507,13 +507,13 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess, onBack }) => {
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {personas.map(({ e, label, badge, isDemo, activeBg, activeBorder, activeColor }) => {
-                const isActive = email === e;
+              {personas.map(({ e: personaEmail, label, badge, isDemo, activeBg, activeBorder, activeColor }) => {
+                const isActive = email === personaEmail;
                 return (
                   <button
-                    key={e}
+                    key={personaEmail}
                     type="button"
-                    onClick={() => setTestAccount(e)}
+                    onClick={() => setTestAccount(personaEmail)}
                     style={{
                       textAlign: 'left',
                       minHeight: '44px',
@@ -546,13 +546,13 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess, onBack }) => {
                       fontWeight: isActive || isDemo ? 700 : 500,
                       transition: 'all 0.2s ease',
                     }}
-                    onMouseEnter={(e) => {
+                    onMouseEnter={(e: React.MouseEvent<HTMLButtonElement>) => {
                       if (!isActive && !isDemo) {
                         (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'rgba(255,255,255,0.07)';
                         (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(255,255,255,0.15)';
                       }
                     }}
-                    onMouseLeave={(e) => {
+                    onMouseLeave={(e: React.MouseEvent<HTMLButtonElement>) => {
                       if (!isActive && !isDemo) {
                         (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'rgba(255,255,255,0.03)';
                         (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(255,255,255,0.08)';

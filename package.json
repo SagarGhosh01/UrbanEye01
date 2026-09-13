@@ -5,8 +5,8 @@
   "scripts": {
     "install:all": "npm install --include=dev --prefix urbaneye-command/web && npm install --include=dev --prefix urbaneye-command/backend",
     "build:web": "npm run build --prefix urbaneye-command/web",
-    "build:backend": "npm run prisma:generate --prefix urbaneye-command/backend && npm run prisma:migrate --prefix urbaneye-command/backend && npm run seed --prefix urbaneye-command/backend && npm run build --prefix urbaneye-command/backend",
-    "build": "npm run build:web && npm run build:backend",
+    "build:backend": "npm run prisma:generate --prefix urbaneye-command/backend && npm run build --prefix urbaneye-command/backend",
+    "build": "npm run install:all && npm run build:web && npm run build:backend",
     "start": "npm run start --prefix urbaneye-command/backend"
   }
 }
