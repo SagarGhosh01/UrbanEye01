@@ -37,33 +37,33 @@ export default function Hero({ onLoginClick }: HeroProps) {
       <div className="absolute -top-28 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-gradient-to-br from-[#1E7F73]/25 via-[#2dd4bf]/15 to-transparent blur-[120px] rounded-full pointer-events-none z-0" aria-hidden="true" />
 
       {/* Top Floating Navigation Header */}
-      <header className="relative z-20 mx-auto w-full max-w-6xl px-4 sm:px-6 pt-4 sm:pt-6 md:px-12 flex items-center justify-between">
-        <div className="flex items-center space-x-3 sm:space-x-3.5">
+      <header className="relative z-20 mx-auto w-full max-w-6xl px-3.5 sm:px-6 pt-3.5 sm:pt-6 md:px-12 flex items-center justify-between gap-2 sm:gap-4">
+        <div className="flex items-center space-x-2 sm:space-x-3.5 min-w-0">
           {/* Logo Brandmark Emblem */}
-          <div className="relative group">
+          <div className="relative group shrink-0">
             <div className="absolute -inset-0.5 bg-gradient-to-r from-[#1E7F73] to-[#2dd4bf] rounded-full blur opacity-40 group-hover:opacity-75 transition duration-300"></div>
-            <div className="relative flex h-10 w-10 items-center justify-center rounded-full overflow-hidden bg-[#081325] border border-[#2dd4bf]/40 p-0.5 shadow-md shadow-[#1E7F73]/20">
+            <div className="relative flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-full overflow-hidden bg-[#081325] border border-[#2dd4bf]/40 p-0.5 shadow-md shadow-[#1E7F73]/20">
               <img src="/logo.png" alt="UrbanEye" className="w-full h-full object-cover rounded-full" />
             </div>
           </div>
 
-          <div className="flex flex-col justify-center">
-            <div className="flex items-center gap-2">
-              <span className="font-display text-lg sm:text-xl font-bold tracking-tight text-white leading-none">
+          <div className="flex flex-col justify-center min-w-0">
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              <span className="font-display text-base sm:text-xl font-bold tracking-tight text-white leading-none">
                 UrbanEye
               </span>
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold tracking-wider bg-[#1E7F73]/20 text-[#2dd4bf] border border-[#2dd4bf]/35 shadow-[0_0_10px_rgba(45,212,191,0.15)] uppercase backdrop-blur-md">
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-mono font-bold tracking-wider bg-[#1E7F73]/20 text-[#2dd4bf] border border-[#2dd4bf]/35 shadow-[0_0_10px_rgba(45,212,191,0.15)] uppercase backdrop-blur-md shrink-0">
                 <span className="w-1.5 h-1.5 rounded-full bg-[#2dd4bf] animate-pulse" />
-                v1.0 LIVE
+                V1.0 LIVE
               </span>
             </div>
-            <span className="text-[10px] sm:text-[11px] font-medium tracking-wider text-slate-400 uppercase mt-1">
+            <span className="text-[9px] sm:text-[11px] font-medium tracking-wider text-slate-400 uppercase mt-0.5 truncate max-w-[160px] xs:max-w-[220px] sm:max-w-none">
               Ministry of Road Transport & Highways
             </span>
           </div>
         </div>
 
-        <nav className="flex items-center space-x-3 sm:space-x-6 text-xs">
+        <nav className="flex items-center space-x-2 sm:space-x-6 text-xs shrink-0">
           <a
             href="#how-it-works"
             className="hidden transition sm:inline font-medium text-slate-300 hover:text-white hover:scale-105"
@@ -89,7 +89,7 @@ export default function Hero({ onLoginClick }: HeroProps) {
             whileTap={{ scale: 0.97 }}
             type="button"
             onClick={onLoginClick}
-            className="rounded-full bg-gradient-to-r from-[#1E7F73] to-[#166c62] hover:from-[#249588] hover:to-[#1a7f74] px-5 sm:px-6 py-2.5 font-bold text-xs sm:text-sm text-white shadow-lg shadow-[#1E7F73]/30 transition-all border border-[#2dd4bf]/20 flex items-center space-x-1.5 min-h-[44px]"
+            className="rounded-full bg-gradient-to-r from-[#1E7F73] to-[#166c62] hover:from-[#249588] hover:to-[#1a7f74] px-3.5 sm:px-6 py-2 sm:py-2.5 font-bold text-xs sm:text-sm text-white shadow-lg shadow-[#1E7F73]/30 transition-all border border-[#2dd4bf]/20 flex items-center space-x-1.5 min-h-[40px] sm:min-h-[44px] whitespace-nowrap shrink-0"
             aria-label="Officer Login"
           >
             <span>Officer Login</span>
