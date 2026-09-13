@@ -50,6 +50,32 @@ const AppInner: React.FC = () => {
   const [latestLiveAlert, setLatestLiveAlert] = useState<RoadEvent | null>(null);
   const [selectedEventForDetail, setSelectedEventForDetail] = useState<RoadEvent | null>(null);
 
+  // Helper constructors for fallback geography states
+  const createFallbackDistrict = useCallback((u: User): District => {
+    const distId = u.districtId || 'dist-kapurthala';
+    const name = u.districtName || 'Kapurthala';
+    return {
+      id: distId,
+      name,
+      code: name.toUpperCase().replace(/\s+/g, '_'),
+      stateId: u.stateId || 'state-punjab',
+      centerLat: distId.includes('mumbai') ? 19.0760 : distId.includes('bengaluru') ? 12.9716 : 31.2536,
+      centerLon: distId.includes('mumbai') ? 72.8777 : distId.includes('bengaluru') ? 77.5946 : 75.7037,
+    };
+  }, []);
+
+  const createFallbackState = useCallback((u: User): State => {
+    const stId = u.stateId || 'state-punjab';
+    const name = u.stateName || 'Punjab';
+    return {
+      id: stId,
+      name,
+      code: u.stateCode || 'PB',
+      centerLat: stId.includes('maharashtra') ? 19.7515 : stId.includes('karnataka') ? 15.3173 : 31.1471,
+      centerLon: 75.3412,
+    };
+  }, []);
+
   // 1. Initial Profile Check
   useEffect(() => {
     async function checkAuth() {
@@ -60,11 +86,14 @@ const AppInner: React.FC = () => {
       try {
         const profile = await api.getMe();
         setUser(profile);
-      } catch (e) {
-        console.error('Session check failed:', e);
-        localStorage.removeItem('urbaneye_token');
-        setToken(null);
-        setUser(null);
+      } catch (e: any) {
+        console.warn('Session check notice:', e?.message || e);
+        // Only clear session if user profile is not set and error is explicitly unauthorized
+        if (!user && e?.message?.toLowerCase().includes('unauthorized')) {
+          localStorage.removeItem('urbaneye_token');
+          setToken(null);
+          setUser(null);
+        }
       } finally {
         setAuthLoading(false);
       }
@@ -76,21 +105,33 @@ const AppInner: React.FC = () => {
   useEffect(() => {
     if (!user) return;
 
-    if (user.role === 'DISTRICT_HEAD' && user.districtId) {
+    if (user.role === 'DISTRICT_HEAD') {
       setViewMode('DISTRICT');
-      api.getDistrict(user.districtId).then((d) => setActiveDistrict(d)).catch(console.error);
-    } else if (user.role === 'STATE_ADMIN' && user.stateId) {
+      if (!activeDistrict || activeDistrict.id !== user.districtId) {
+        setActiveDistrict(createFallbackDistrict(user));
+      }
+      if (user.districtId) {
+        api.getDistrict(user.districtId).then((d) => {
+          if (d) setActiveDistrict(d);
+        }).catch(console.error);
+      }
+    } else if (user.role === 'STATE_ADMIN') {
       setViewMode('STATE');
-      api.getStates().then((sts) => {
-        const myState = sts.find((s) => s.id === user.stateId);
-        if (myState) {
-          setSelectedState(myState);
-        }
-      }).catch(console.error);
+      if (!selectedState || selectedState.id !== user.stateId) {
+        setSelectedState(createFallbackState(user));
+      }
+      if (user.stateId) {
+        api.getStates().then((sts) => {
+          const myState = sts.find((s) => s.id === user.stateId);
+          if (myState) {
+            setSelectedState(myState);
+          }
+        }).catch(console.error);
+      }
     } else if (user.role === 'NATIONAL_ADMIN') {
       setViewMode('NATIONAL');
     }
-  }, [user]);
+  }, [user, createFallbackDistrict, createFallbackState]);
 
   // 3. Load District Data (Events & Stats)
   const refreshDistrictData = useCallback(async () => {
@@ -260,6 +301,15 @@ const AppInner: React.FC = () => {
             setUser(u);
             setToken(t);
             setIsLoginView(false);
+            if (u.role === 'DISTRICT_HEAD') {
+              setViewMode('DISTRICT');
+              setActiveDistrict(createFallbackDistrict(u));
+            } else if (u.role === 'STATE_ADMIN') {
+              setViewMode('STATE');
+              setSelectedState(createFallbackState(u));
+            } else if (u.role === 'NATIONAL_ADMIN') {
+              setViewMode('NATIONAL');
+            }
           }}
           onBack={() => setIsLoginView(false)}
         />

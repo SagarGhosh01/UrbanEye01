@@ -21,6 +21,7 @@ async function main() {
   // 1. Create States
   const mh = await prisma.state.create({
     data: {
+      id: 'state-maharashtra',
       code: 'MH',
       name: 'Maharashtra',
       centerLat: 19.7515,
@@ -30,6 +31,7 @@ async function main() {
 
   const ka = await prisma.state.create({
     data: {
+      id: 'state-karnataka',
       code: 'KA',
       name: 'Karnataka',
       centerLat: 15.3173,
@@ -39,6 +41,7 @@ async function main() {
 
   const dl = await prisma.state.create({
     data: {
+      id: 'state-delhi',
       code: 'DL',
       name: 'Delhi NCT',
       centerLat: 28.7041,
@@ -48,6 +51,7 @@ async function main() {
 
   const pb = await prisma.state.create({
     data: {
+      id: 'state-punjab',
       code: 'PB',
       name: 'Punjab',
       centerLat: 31.1471,
@@ -58,6 +62,7 @@ async function main() {
   // 2. Create Districts
   const kapurthala = await prisma.district.create({
     data: {
+      id: 'dist-kapurthala',
       code: 'KAPURTHALA',
       name: 'Kapurthala',
       stateId: pb.id,
@@ -72,6 +77,7 @@ async function main() {
 
   const jalandhar = await prisma.district.create({
     data: {
+      id: 'dist-jalandhar',
       code: 'JALANDHAR',
       name: 'Jalandhar',
       stateId: pb.id,
@@ -86,6 +92,7 @@ async function main() {
 
   const ludhiana = await prisma.district.create({
     data: {
+      id: 'dist-ludhiana',
       code: 'LUDHIANA',
       name: 'Ludhiana',
       stateId: pb.id,
@@ -100,6 +107,7 @@ async function main() {
 
   const mumbaiSuburban = await prisma.district.create({
     data: {
+      id: 'dist-mumbai-suburban',
       code: 'MUM_SUB',
       name: 'Mumbai Suburban',
       stateId: mh.id,
@@ -114,6 +122,7 @@ async function main() {
 
   const blrUrban = await prisma.district.create({
     data: {
+      id: 'dist-bengaluru-urban',
       code: 'BLR_URB',
       name: 'Bengaluru Urban',
       stateId: ka.id,
@@ -134,6 +143,7 @@ async function main() {
   // 3. Create Hierarchical Accounts
   const admin = await prisma.user.create({
     data: {
+      id: 'usr-admin-national',
       email: 'admin@urbaneye.gov.in',
       passwordHash,
       name: 'Shri Rajesh Verma (MoRTH Director)',
@@ -143,6 +153,7 @@ async function main() {
 
   const statePb = await prisma.user.create({
     data: {
+      id: 'usr-admin-pb',
       email: 'admin.pb@urbaneye.gov.in',
       passwordHash,
       name: 'S. Harpreet Singh (Punjab PWD Chief Engineer)',
@@ -153,6 +164,7 @@ async function main() {
 
   const headKapurthala = await prisma.user.create({
     data: {
+      id: 'usr-kapurthala-1',
       email: 'head.kapurthala@urbaneye.gov.in',
       passwordHash,
       name: 'Er. Gurpreet Singh (Kapurthala Road Commissioner)',
@@ -164,6 +176,7 @@ async function main() {
 
   await prisma.user.create({
     data: {
+      id: 'usr-jalandhar-1',
       email: 'head.jalandhar@urbaneye.gov.in',
       passwordHash,
       name: 'Er. Manjit Kaur (Jalandhar Infrastructure Head)',
