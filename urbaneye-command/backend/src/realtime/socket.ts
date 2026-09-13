@@ -54,6 +54,10 @@ export function getIO(): SocketIOServer | null {
 
 export function emitNewRoadEvent(event: any): void {
   if (!io) return;
+  // Broadcast globally to all connected socket clients (web dashboard, mobile app)
+  io.emit('event:new', event);
+  io.emit('detection:new', event);
+
   // Send to district rooms
   io.to(`district:${event.districtId}`).emit('event:new', event);
   io.to(`district:${String(event.districtId).toLowerCase()}`).emit('event:new', event);

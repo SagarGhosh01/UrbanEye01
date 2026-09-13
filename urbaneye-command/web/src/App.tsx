@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { User, State, District, RoadEvent, AnalyticsStats, EventStatus } from './types';
 import { api } from './services/api';
-import { subscribeToDistrict } from './services/socket';
+import { subscribeToDistrict, subscribeToNational } from './services/socket';
 import { Header, ActiveTabType } from './components/Header';
 import { LiveMap } from './components/LiveMap';
 import { DefectTable } from './components/DefectTable';
@@ -168,63 +168,75 @@ const defaultStats: AnalyticsStats = {
 
   // 4. Real-Time Socket Subscription (Pushes live events into map, feed, and counters)
   useEffect(() => {
-    if (!activeDistrict) return;
+    const handleNewEvent = (newEvent: RoadEvent) => {
+      console.log('⚡ Received Live Road Event from phone:', newEvent);
+      // Prepend event immediately to feed and map without page refresh
+      setEvents((prev) => [newEvent, ...prev.filter((e) => e.id !== newEvent.id)]);
+      setLatestLiveAlert(newEvent);
 
-    const cleanup = subscribeToDistrict(
-      activeDistrict.id,
-      (newEvent) => {
-        console.log('⚡ Received Live Road Event:', newEvent);
-        // Prepend event immediately to feed and map without page refresh
-        setEvents((prev) => [newEvent, ...prev.filter((e) => e.id !== newEvent.id)]);
-        setLatestLiveAlert(newEvent);
+      // Instantly increment summary counters live
+      setStats((prev) => {
+        if (!prev) return prev;
+        const isNew = newEvent.status === 'NEW';
+        return {
+          ...prev,
+          totalEvents: prev.totalEvents + 1,
+          byStatus: {
+            ...prev.byStatus,
+            new: isNew ? prev.byStatus.new + 1 : prev.byStatus.new,
+          },
+          byType: {
+            ...prev.byType,
+            pothole: newEvent.type === 'POTHOLE' ? prev.byType.pothole + 1 : prev.byType.pothole,
+            roadCrack: newEvent.type === 'ROAD_CRACK' ? prev.byType.roadCrack + 1 : prev.byType.roadCrack,
+            surfaceDamage: newEvent.type === 'SURFACE_DAMAGE' ? prev.byType.surfaceDamage + 1 : prev.byType.surfaceDamage,
+            waterlogging: newEvent.type === 'WATERLOGGING' ? prev.byType.waterlogging + 1 : prev.byType.waterlogging,
+            vehicleFlow: newEvent.type === 'VEHICLE_FLOW' ? prev.byType.vehicleFlow + 1 : prev.byType.vehicleFlow,
+          },
+        };
+      });
 
-        // Instantly increment summary counters live
-        setStats((prev) => {
-          if (!prev) return prev;
-          const isNew = newEvent.status === 'NEW';
-          return {
-            ...prev,
-            totalEvents: prev.totalEvents + 1,
-            byStatus: {
-              ...prev.byStatus,
-              new: isNew ? prev.byStatus.new + 1 : prev.byStatus.new,
-            },
-            byType: {
-              ...prev.byType,
-              pothole: newEvent.type === 'POTHOLE' ? prev.byType.pothole + 1 : prev.byType.pothole,
-              roadCrack: newEvent.type === 'ROAD_CRACK' ? prev.byType.roadCrack + 1 : prev.byType.roadCrack,
-              surfaceDamage: newEvent.type === 'SURFACE_DAMAGE' ? prev.byType.surfaceDamage + 1 : prev.byType.surfaceDamage,
-              waterlogging: newEvent.type === 'WATERLOGGING' ? prev.byType.waterlogging + 1 : prev.byType.waterlogging,
-              vehicleFlow: newEvent.type === 'VEHICLE_FLOW' ? prev.byType.vehicleFlow + 1 : prev.byType.vehicleFlow,
-            },
-          };
-        });
-
-        // Also sync authoritative computed stats from server
-        api.getEventStats(activeDistrict.id).then(setStats).catch(console.error);
-
-        // Auto-dismiss notification toast after 6s
-        setTimeout(() => setLatestLiveAlert((curr) => (curr?.id === newEvent.id ? null : curr)), 6000);
-      },
-      (updatedEvent) => {
-        setEvents((prev) => prev.map((e) => (e.id === updatedEvent.id ? updatedEvent : e)));
-        if (selectedEventForDetail?.id === updatedEvent.id) {
-          setSelectedEventForDetail(updatedEvent);
-        }
-        api.getEventStats(activeDistrict.id).then(setStats).catch(console.error);
-      },
-      activeDistrict.code,
-      (deleted) => {
-        setEvents((prev) => prev.filter((e) => e.id !== deleted.id));
-        if (selectedEventForDetail?.id === deleted.id) {
-          setSelectedEventForDetail(null);
-        }
+      if (activeDistrict) {
         api.getEventStats(activeDistrict.id).then(setStats).catch(console.error);
       }
-    );
+
+      // Auto-dismiss notification toast after 6s
+      setTimeout(() => setLatestLiveAlert((curr) => (curr?.id === newEvent.id ? null : curr)), 6000);
+    };
+
+    const handleUpdatedEvent = (updatedEvent: RoadEvent) => {
+      setEvents((prev) => prev.map((e) => (e.id === updatedEvent.id ? updatedEvent : e)));
+      if (selectedEventForDetail?.id === updatedEvent.id) {
+        setSelectedEventForDetail(updatedEvent);
+      }
+      if (activeDistrict) {
+        api.getEventStats(activeDistrict.id).then(setStats).catch(console.error);
+      }
+    };
+
+    let cleanupDistrict: (() => void) | null = null;
+    if (activeDistrict) {
+      cleanupDistrict = subscribeToDistrict(
+        activeDistrict.id,
+        handleNewEvent,
+        handleUpdatedEvent,
+        activeDistrict.code,
+        (deleted) => {
+          setEvents((prev) => prev.filter((e) => e.id !== deleted.id));
+          if (selectedEventForDetail?.id === deleted.id) {
+            setSelectedEventForDetail(null);
+          }
+          if (activeDistrict) {
+            api.getEventStats(activeDistrict.id).then(setStats).catch(console.error);
+          }
+        }
+      );
+    } else {
+      cleanupDistrict = subscribeToNational(handleNewEvent, handleUpdatedEvent);
+    }
 
     return () => {
-      cleanup();
+      if (cleanupDistrict) cleanupDistrict();
     };
   }, [activeDistrict, selectedEventForDetail?.id]);
 
