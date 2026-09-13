@@ -347,7 +347,7 @@ const AppInner: React.FC = () => {
   }
 
   return (
-    <div className={`min-h-screen flex flex-col font-sans ${isDark ? 'bg-[#07162c] text-white' : 'bg-[#f4f6f8] text-slate-900'}`}>
+    <div className={`min-h-screen w-full max-w-full overflow-x-hidden flex flex-col font-sans ${isDark ? 'bg-[#07162c] text-white' : 'bg-[#f4f6f8] text-slate-900'}`}>
       {/* Header */}
       <Header
         user={user}
@@ -388,7 +388,7 @@ const AppInner: React.FC = () => {
       )}
 
       {/* Main Container */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-3.5 sm:py-5">
+      <main className="flex-1 max-w-7xl w-full max-w-full mx-auto px-2.5 sm:px-6 lg:px-8 py-3.5 sm:py-5 overflow-x-hidden">
         {/* VIEW 1: National Admin View */}
         {viewMode === 'NATIONAL' && (
           <NationalOverviewView

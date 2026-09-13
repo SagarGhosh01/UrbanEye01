@@ -302,8 +302,8 @@ export const LiveMap: React.FC<LiveMapProps> = ({
       <div ref={mapContainerRef} className="w-full h-full" />
 
       {/* Top Right GIS Layer Controls Toggle Panel */}
-      <div className="absolute top-3 right-3 z-30">
-        <div className="bg-slate-900/90 backdrop-blur-md border border-white/10 rounded-xl shadow-xl p-2.5 text-xs text-white space-y-1.5 min-w-[180px]">
+      <div className="absolute top-2.5 right-2.5 sm:top-3 sm:right-3 z-30 max-w-[calc(100vw-32px)]">
+        <div className="bg-slate-900/90 backdrop-blur-md border border-white/10 rounded-xl shadow-xl p-2 sm:p-2.5 text-xs text-white space-y-1 sm:space-y-1.5 max-w-[170px] sm:min-w-[180px]">
 
           <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 border-b border-white/10 pb-1 flex items-center justify-between">
             <span>GIS Map Layers</span>
