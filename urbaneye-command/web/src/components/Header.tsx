@@ -76,64 +76,89 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
         </div>
 
-        {/* Center: Sleek Segmented View Navigation Tabs */}
+        {/* Center: Sleek Cyber-Glow & Active Underline Navigation Tabs */}
         {onTabChange && (
-          <div className="hidden lg:flex items-center p-1.5 gap-1.5 rounded-xl bg-slate-900/90 border border-slate-800 text-xs shrink min-w-0 overflow-x-auto scrollbar-none max-w-full shadow-inner">
+          <nav className="hidden lg:flex items-center space-x-1 sm:space-x-2 shrink min-w-0 overflow-x-auto scrollbar-none max-w-full py-1">
             <button
               type="button"
               onClick={() => onTabChange('DEFECTS')}
-              className={`flex items-center space-x-2 px-3.5 py-1.5 rounded-lg font-bold text-xs whitespace-nowrap shrink-0 transition-all ${
-                activeTab === 'DEFECTS' ? 'bg-[#1E7F73] text-white shadow-md' : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
+              className={`relative flex items-center space-x-2 px-3 sm:px-3.5 py-2 rounded-xl text-xs font-bold transition-all duration-200 shrink-0 ${
+                activeTab === 'DEFECTS'
+                  ? 'text-[#2dd4bf] bg-[#1E7F73]/15 border border-[#2dd4bf]/30 shadow-[0_0_12px_rgba(45,212,191,0.15)]'
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40 border border-transparent'
               }`}
             >
-              <ShieldAlert className="w-3.5 h-3.5 shrink-0" />
+              <ShieldAlert className="w-4 h-4 shrink-0 text-[#2dd4bf]" />
               <span>Road Defects</span>
+              {activeTab === 'DEFECTS' && (
+                <span className="absolute bottom-[-2px] left-2 right-2 h-[2.5px] rounded-full bg-[#2dd4bf] shadow-[0_0_8px_#2dd4bf]" />
+              )}
             </button>
 
             <button
               type="button"
               onClick={() => onTabChange('TRAFFIC')}
-              className={`flex items-center space-x-2 px-3.5 py-1.5 rounded-lg font-bold text-xs whitespace-nowrap shrink-0 transition-all ${
-                activeTab === 'TRAFFIC' ? 'bg-[#1E7F73] text-white shadow-md' : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
+              className={`relative flex items-center space-x-2 px-3 sm:px-3.5 py-2 rounded-xl text-xs font-bold transition-all duration-200 shrink-0 ${
+                activeTab === 'TRAFFIC'
+                  ? 'text-[#2dd4bf] bg-[#1E7F73]/15 border border-[#2dd4bf]/30 shadow-[0_0_12px_rgba(45,212,191,0.15)]'
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40 border border-transparent'
               }`}
             >
-              <Activity className="w-3.5 h-3.5 text-teal-300 animate-pulse shrink-0" />
+              <Activity className="w-4 h-4 text-teal-400 animate-pulse shrink-0" />
               <span>Traffic Flow</span>
+              {activeTab === 'TRAFFIC' && (
+                <span className="absolute bottom-[-2px] left-2 right-2 h-[2.5px] rounded-full bg-[#2dd4bf] shadow-[0_0_8px_#2dd4bf]" />
+              )}
             </button>
 
             <button
               type="button"
               onClick={() => onTabChange('INCIDENTS')}
-              className={`flex items-center space-x-2 px-3.5 py-1.5 rounded-lg font-bold text-xs whitespace-nowrap shrink-0 transition-all ${
-                activeTab === 'INCIDENTS' ? 'bg-[#1E7F73] text-white shadow-md' : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
+              className={`relative flex items-center space-x-2 px-3 sm:px-3.5 py-2 rounded-xl text-xs font-bold transition-all duration-200 shrink-0 ${
+                activeTab === 'INCIDENTS'
+                  ? 'text-[#2dd4bf] bg-[#1E7F73]/15 border border-[#2dd4bf]/30 shadow-[0_0_12px_rgba(45,212,191,0.15)]'
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40 border border-transparent'
               }`}
             >
-              <AlertTriangle className="w-3.5 h-3.5 text-red-400 shrink-0" />
+              <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
               <span>Incidents & ANPR</span>
+              {activeTab === 'INCIDENTS' && (
+                <span className="absolute bottom-[-2px] left-2 right-2 h-[2.5px] rounded-full bg-[#2dd4bf] shadow-[0_0_8px_#2dd4bf]" />
+              )}
             </button>
 
             <button
               type="button"
               onClick={() => onTabChange('SAFETY')}
-              className={`flex items-center space-x-2 px-3.5 py-1.5 rounded-lg font-bold text-xs whitespace-nowrap shrink-0 transition-all ${
-                activeTab === 'SAFETY' ? 'bg-[#1E7F73] text-white shadow-md' : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
+              className={`relative flex items-center space-x-2 px-3 sm:px-3.5 py-2 rounded-xl text-xs font-bold transition-all duration-200 shrink-0 ${
+                activeTab === 'SAFETY'
+                  ? 'text-[#2dd4bf] bg-[#1E7F73]/15 border border-[#2dd4bf]/30 shadow-[0_0_12px_rgba(45,212,191,0.15)]'
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40 border border-transparent'
               }`}
             >
-              <School className="w-3.5 h-3.5 text-yellow-300 shrink-0" />
+              <School className="w-4 h-4 text-yellow-400 shrink-0" />
               <span>VRU Safety</span>
+              {activeTab === 'SAFETY' && (
+                <span className="absolute bottom-[-2px] left-2 right-2 h-[2.5px] rounded-full bg-[#2dd4bf] shadow-[0_0_8px_#2dd4bf]" />
+              )}
             </button>
 
             <button
               type="button"
               onClick={() => onTabChange('PREDICTIVE')}
-              className={`flex items-center space-x-2 px-3.5 py-1.5 rounded-lg font-bold text-xs whitespace-nowrap shrink-0 transition-all ${
-                activeTab === 'PREDICTIVE' ? 'bg-[#1E7F73] text-white shadow-md' : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
+              className={`relative flex items-center space-x-2 px-3 sm:px-3.5 py-2 rounded-xl text-xs font-bold transition-all duration-200 shrink-0 ${
+                activeTab === 'PREDICTIVE'
+                  ? 'text-[#2dd4bf] bg-[#1E7F73]/15 border border-[#2dd4bf]/30 shadow-[0_0_12px_rgba(45,212,191,0.15)]'
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40 border border-transparent'
               }`}
             >
-              <Sparkles className="w-3.5 h-3.5 text-teal-300 shrink-0" />
+              <Sparkles className="w-4 h-4 text-teal-300 shrink-0" />
               <span>Predictive AI</span>
+              {activeTab === 'PREDICTIVE' && (
+                <span className="absolute bottom-[-2px] left-2 right-2 h-[2.5px] rounded-full bg-[#2dd4bf] shadow-[0_0_8px_#2dd4bf]" />
+              )}
             </button>
-          </div>
+          </nav>
         )}
 
         {/* Right Side: Jurisdiction & User Actions */}
