@@ -21,6 +21,7 @@ import {
   ImageIcon,
 } from 'lucide-react';
 import { resolveImageSrc } from '../utils/imageUtils';
+import { deduplicationService } from '../services/deduplicationService';
 
 interface LiveCameraModalProps {
   isOpen: boolean;
@@ -480,6 +481,23 @@ export const LiveCameraModal: React.FC<LiveCameraModalProps> = ({
       const areaM2 = activeBox?.areaM2 || 0.48;
       const repairCost = activeBox?.repairCost || 3850;
 
+      // 🛡️ Client-side O(1) GPS Grid & pHash Deduplication Check
+      const dedupResult = deduplicationService.checkAndRegisterDetection(
+        lat,
+        lon,
+        confToIngest,
+        imageSnippet,
+        { widthCm, lengthCm, depthCm, repairCost }
+      );
+
+      if (dedupResult.isDuplicate && dedupResult.action === 'SKIP_UPLOAD') {
+        const msg = `🛡️ Deduplicated: Pothole seen ${dedupResult.entry.timesSeen} times (Upload skipped)`;
+        setLastTransmitted(msg);
+        speakAlert(`Pothole seen ${dedupResult.entry.timesSeen} times. Client upload skipped.`);
+        setIsCapturing(false);
+        return;
+      }
+
       const currentSpeed = Math.round(25 + Math.random() * 25);
       setTelemetrySpeed(currentSpeed);
       setTelemetryHeading(Math.round(160 + Math.random() * 50));
@@ -795,7 +813,7 @@ export const LiveCameraModal: React.FC<LiveCameraModalProps> = ({
           {activeBox && (
             <div className="p-3 bg-slate-950/90 border border-slate-700 rounded-xl space-y-2 text-xs font-mono animate-fade-in shadow-lg">
               <div className="flex flex-wrap items-center justify-between gap-1.5 border-b border-slate-800 pb-1.5">
-                <div className="flex items-center space-x-2">
+                <div className="flex flex-wrap items-center space-x-2 gap-y-1">
                   <span className="font-bold text-slate-200 text-sm flex items-center gap-1.5">
                     <span>🕳️</span>
                     <span>{activeBox.label.toUpperCase()}</span>
@@ -806,6 +824,10 @@ export const LiveCameraModal: React.FC<LiveCameraModalProps> = ({
                       : 'bg-amber-950 border-amber-500 text-amber-300 border-dashed animate-pulse'
                   }`}>
                     {activeBox.status === 'CONFIRMED' ? '✓ CONFIRMED MULTI-FRAME' : '? UNCONFIRMED SINGLE-FRAME'}
+                  </span>
+                  <span className="text-[9px] font-bold px-2 py-0.5 rounded-full border bg-purple-950/80 border-purple-500/60 text-purple-300 flex items-center gap-1">
+                    <span>🛡️</span>
+                    <span>Seen {gpsLocation ? deduplicationService.getTimesSeen(gpsLocation.lat, gpsLocation.lon) : 1}x</span>
                   </span>
                 </div>
 

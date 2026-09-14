@@ -280,10 +280,10 @@ export async function handleIngestEvent(req: Request, res: Response): Promise<vo
       rawConfidence
     );
 
-    // 🛡️ DEDUPLICATION ENGINE:
+    // 🛡️ DEDUPLICATION ENGINE SAFETY NET:
     const nowMs = timestamp ? new Date(timestamp).getTime() : Date.now();
-    const DEDUPLICATION_RADIUS_METERS = 25;
-    const DEDUPLICATION_TIME_MS = 60000;
+    const DEDUPLICATION_RADIUS_METERS = 10; // 10-meter spatial threshold
+    const DEDUPLICATION_TIME_MS = 24 * 60 * 60 * 1000; // 24-hour configurable window
 
     let duplicateEvent = IN_MEMORY_EVENTS.find((e) => {
       if (e.type !== rawType) return false;
@@ -294,7 +294,7 @@ export async function handleIngestEvent(req: Request, res: Response): Promise<vo
     });
 
     if (duplicateEvent) {
-      console.log(`🛡️ Deduplicated event '${duplicateEvent.id}' at (${numLat}, ${numLon}) - updating existing detection record.`);
+      duplicateEvent.timesSeen = (duplicateEvent.timesSeen || 1) + 1;
       duplicateEvent.timestamp = new Date(nowMs);
       if (rawConfidence > duplicateEvent.confidence) {
         duplicateEvent.confidence = rawConfidence;
@@ -348,9 +348,10 @@ export async function handleIngestEvent(req: Request, res: Response): Promise<vo
         eventId: duplicateEvent.id,
         districtId: duplicateEvent.districtId,
         busLabel: duplicateEvent.busLabel,
+        timesSeen: duplicateEvent.timesSeen,
         timestamp: duplicateEvent.timestamp,
         metrics: defectMetrics,
-        message: 'Deduplicated: updated existing nearby pothole detection within 25m radius.',
+        message: `Deduplicated: updated existing nearby pothole record (Seen ${duplicateEvent.timesSeen}x).`,
       });
       return;
     }
