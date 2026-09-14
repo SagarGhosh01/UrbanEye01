@@ -276,16 +276,43 @@ export async function handleIngestEvent(req: Request, res: Response): Promise<vo
 
     const rawDistrictId = body.districtId || body.district_id || body.district;
     let resolvedDistrictId = rawDistrictId || session.districtId || 'dist-kapurthala';
+    let resolvedDistrictObj: any = session.district || { name: 'Kapurthala', code: 'KAPURTHALA' };
 
-    // Verify districtId exists in database or fallback
+    // Smart 4-level District Resolution
     try {
-      const dbDist = await prisma.district.findUnique({ where: { id: resolvedDistrictId } });
+      let dbDist = await prisma.district.findUnique({ where: { id: resolvedDistrictId } });
       if (!dbDist) {
-        const fallbackDist = await prisma.district.findFirst();
-        if (fallbackDist) resolvedDistrictId = fallbackDist.id;
+        dbDist = await prisma.district.findFirst({
+          where: {
+            OR: [
+              { code: { equals: String(resolvedDistrictId).toUpperCase() } },
+              { name: { contains: String(resolvedDistrictId) } },
+              { id: { contains: String(resolvedDistrictId).toLowerCase() } },
+            ],
+          },
+        });
+      }
+      if (!dbDist && numLat && numLon) {
+        dbDist = await prisma.district.findFirst({
+          where: {
+            minLat: { lte: numLat },
+            maxLat: { gte: numLat },
+            minLon: { lte: numLon },
+            maxLon: { gte: numLon },
+          },
+        });
+      }
+      if (!dbDist) {
+        dbDist = await prisma.district.findFirst({
+          where: { OR: [{ id: 'dist-kapurthala' }, { code: 'KAPURTHALA' }] },
+        });
+      }
+      if (dbDist) {
+        resolvedDistrictId = dbDist.id;
+        resolvedDistrictObj = { name: dbDist.name, code: dbDist.code, stateId: dbDist.stateId };
       }
     } catch (distCheckErr) {
-      // ignore
+      console.warn('District resolution warning:', (distCheckErr as Error).message);
     }
 
     // Ensure session exists in Prisma DB so RoadEvent foreign key constraint never fails
@@ -520,7 +547,14 @@ eventsRouter.get(
 
       const whereClause: any = {};
       if (targetDistrictId && targetDistrictId !== 'ALL') {
-        whereClause.districtId = targetDistrictId;
+        const cleanId = String(targetDistrictId).trim();
+        whereClause.OR = [
+          { districtId: cleanId },
+          { districtId: { contains: cleanId.replace('dist-', '') } },
+        ];
+        if (cleanId.includes('kapurthala')) {
+          whereClause.OR.push({ districtId: 'dist-kapurthala' });
+        }
       } else if (req.user?.role === 'STATE_ADMIN') {
         whereClause.district = { stateId: req.user!.stateId };
       }
@@ -551,12 +585,12 @@ eventsRouter.get(
 
       // Filter in-memory events
       let filteredMem = IN_MEMORY_EVENTS.filter((e) => {
-        if (
-          targetDistrictId &&
-          targetDistrictId !== 'ALL' &&
-          String(e.districtId).toLowerCase() !== String(targetDistrictId).toLowerCase() &&
-          e.districtId !== 'dist-kapurthala'
-        ) return false;
+        if (targetDistrictId && targetDistrictId !== 'ALL') {
+          const tId = String(targetDistrictId).toLowerCase();
+          const eId = String(e.districtId || '').toLowerCase();
+          const isKapMatch = tId.includes('kapurthala') || eId.includes('kapurthala');
+          if (eId !== tId && !isKapMatch) return false;
+        }
         if (type && e.type !== (type as string).toUpperCase()) return false;
         if (status && e.status !== (status as string).toUpperCase()) return false;
         if (busLabel && !e.busLabel?.toLowerCase().includes((busLabel as string).toLowerCase())) return false;
