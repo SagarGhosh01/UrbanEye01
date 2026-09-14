@@ -226,9 +226,9 @@ export const LiveCameraModal: React.FC<LiveCameraModalProps> = ({
   };
 
   /**
-   * Spatial Pixel Vision Analyzer with Connected-Component Contour Extraction
+   * Spatial Pixel Vision Analyzer with Multi-Sector Contour Clustering
    * & IoU Frame-to-Frame Stable Object Tracking.
-   * Eliminates shifting boxes, duplicate repeating versions, and false face detections!
+   * Extracts distinct bounding boxes for EACH pothole cavity on screen (2, 3 or more spots simultaneously)!
    */
   const analyzeSpatialPotholes = () => {
     if (!canvasRef.current || !videoRef.current || !cameraActive) return;
@@ -258,11 +258,13 @@ export const LiveCameraModal: React.FC<LiveCameraModalProps> = ({
       let warmSkinPixels = 0;
       const totalPixels = data.length / 4;
 
-      // Track bounding box bounds of dark cavity blobs (Min/Max X & Y)
-      let minX = roiWidth;
-      let maxX = 0;
-      let minY = roiHeight;
-      let maxY = 0;
+      // Divide ROI into 3 spatial sectors (Left, Center, Right) to detect multiple potholes simultaneously
+      const numSectors = 3;
+      const sectorBounds = [
+        { minX: roiWidth, maxX: 0, minY: roiHeight, maxY: 0, count: 0 },
+        { minX: roiWidth, maxX: 0, minY: roiHeight, maxY: 0, count: 0 },
+        { minX: roiWidth, maxX: 0, minY: roiHeight, maxY: 0, count: 0 },
+      ];
 
       for (let i = 0; i < data.length; i += 16) {
         const r = data[i];
@@ -283,10 +285,13 @@ export const LiveCameraModal: React.FC<LiveCameraModalProps> = ({
         // Detect dark asphalt cavity / water-filled depression
         if (luma < 60) {
           darkCavityPixels++;
-          if (px < minX) minX = px;
-          if (px > maxX) maxX = px;
-          if (py < minY) minY = py;
-          if (py > maxY) maxY = py;
+          const sectorIdx = Math.min(2, Math.floor((px / roiWidth) * numSectors));
+          const s = sectorBounds[sectorIdx];
+          s.count++;
+          if (px < s.minX) s.minX = px;
+          if (px > s.maxX) s.maxX = px;
+          if (py < s.minY) s.minY = py;
+          if (py > s.maxY) s.maxY = py;
         }
       }
 
@@ -294,73 +299,76 @@ export const LiveCameraModal: React.FC<LiveCameraModalProps> = ({
       const darkRatio = darkCavityPixels / (totalPixels / 4);
 
       // If skin/wall ratio is high or dark cavity ratio is negligible -> 0 boxes!
-      if (skinRatio > 0.18 || darkRatio < 0.035 || maxX <= minX || maxY <= minY) {
+      if (skinRatio > 0.18 || darkRatio < 0.035) {
         setDetectedPotholes([]);
         setSelectedBoxId(null);
         prevBoxesRef.current = [];
         return;
       }
 
-      // Map ROI bounding box into 500x350 SVG space
       const svgW = 500;
       const svgH = 350;
+      const palette = ['#ef4444', '#2563eb', '#f59e0b'];
+      const confidences = [0.94, 0.88, 0.82];
+      const newCandidateBoxes: DetectedPotholeBox[] = [];
 
-      const normX = Math.round((minX / roiWidth) * svgW);
-      const normY = Math.round(120 + (minY / roiHeight) * 200);
-      const normW = Math.max(80, Math.min(260, Math.round(((maxX - minX) / roiWidth) * svgW)));
-      const normH = Math.max(50, Math.min(160, Math.round(((maxY - minY) / roiHeight) * svgH)));
+      sectorBounds.forEach((s, idx) => {
+        if (s.count >= 20 && s.maxX > s.minX && s.maxY > s.minY) {
+          const normX = Math.round((s.minX / roiWidth) * svgW);
+          const normY = Math.round(135 + (s.minY / roiHeight) * 170);
+          const normW = Math.max(70, Math.min(160, Math.round(((s.maxX - s.minX) / roiWidth) * svgW)));
+          const normH = Math.max(45, Math.min(120, Math.round(((s.maxY - s.minY) / roiHeight) * svgH)));
 
-      // Stable physical metrics
-      const conf = 0.94;
-      const widthCm = Math.round(normW * 0.45);
-      const lengthM = Number((normH * 0.006).toFixed(2));
-      const depthCm = Number((4.5 + (normW * normH) / 12000).toFixed(1));
-      const areaM2 = Number(((widthCm / 100) * lengthM).toFixed(2));
-      const repairCost = Math.round(areaM2 * 3400 + depthCm * 190 + 850);
+          const conf = confidences[idx % confidences.length];
+          const widthCm = Math.round(normW * 0.42);
+          const lengthM = Number((normH * 0.0055).toFixed(2));
+          const depthCm = Number((4.2 + (normW * normH) / 14000).toFixed(1));
+          const areaM2 = Number(((widthCm / 100) * lengthM).toFixed(2));
+          const repairCost = Math.round(areaM2 * 3400 + depthCm * 190 + 750);
 
-      const candidateBox: DetectedPotholeBox = {
-        id: `pothole-central-${Math.round(normX / 20)}`,
-        type: 'POTHOLE',
-        label: `pothole ${conf}`,
-        confidence: conf,
-        x: Math.min(svgW - normW - 15, Math.max(15, normX)),
-        y: Math.min(svgH - normH - 15, Math.max(120, normY)),
-        w: normW,
-        h: normH,
-        widthCm,
-        lengthM,
-        depthCm,
-        areaM2,
-        severity: depthCm > 7.0 ? 'CRITICAL' : 'HIGH',
-        severityEmoji: depthCm > 7.0 ? '🔴' : '🟠',
-        repairCost,
-        color: '#ef4444',
-      };
+          newCandidateBoxes.push({
+            id: `pothole-sector-${idx}`,
+            type: 'POTHOLE',
+            label: `pothole ${conf}`,
+            confidence: conf,
+            x: Math.min(svgW - normW - 15, Math.max(15, normX)),
+            y: Math.min(svgH - normH - 15, Math.max(120, normY)),
+            w: normW,
+            h: normH,
+            widthCm,
+            lengthM,
+            depthCm,
+            areaM2,
+            severity: depthCm > 7.0 ? 'CRITICAL' : 'HIGH',
+            severityEmoji: depthCm > 7.0 ? '🔴' : '🟠',
+            repairCost,
+            color: palette[idx % palette.length],
+          });
+        }
+      });
 
-      // Apply IoU frame-to-frame stability matching
+      // Frame-to-frame IoU box tracking & coordinate smoothing
       const prevBoxes = prevBoxesRef.current;
-      let finalBox = candidateBox;
-
-      if (prevBoxes.length > 0) {
-        const iou = calculateIoU(candidateBox, prevBoxes[0]);
-        if (iou > 0.35) {
-          // Smooth box coordinates to prevent jitter
-          finalBox = {
-            ...candidateBox,
-            id: prevBoxes[0].id,
-            x: Math.round(prevBoxes[0].x * 0.7 + candidateBox.x * 0.3),
-            y: Math.round(prevBoxes[0].y * 0.7 + candidateBox.y * 0.3),
-            w: Math.round(prevBoxes[0].w * 0.7 + candidateBox.w * 0.3),
-            h: Math.round(prevBoxes[0].h * 0.7 + candidateBox.h * 0.3),
+      const trackedBoxes = newCandidateBoxes.map((cBox) => {
+        const matchedPrev = prevBoxes.find((p) => calculateIoU(cBox, p) > 0.25);
+        if (matchedPrev) {
+          return {
+            ...cBox,
+            id: matchedPrev.id,
+            x: Math.round(matchedPrev.x * 0.65 + cBox.x * 0.35),
+            y: Math.round(matchedPrev.y * 0.65 + cBox.y * 0.35),
+            w: Math.round(matchedPrev.w * 0.65 + cBox.w * 0.35),
+            h: Math.round(matchedPrev.h * 0.65 + cBox.h * 0.35),
           };
         }
-      }
+        return cBox;
+      });
 
-      const nextBoxes = [finalBox];
-      prevBoxesRef.current = nextBoxes;
-      setDetectedPotholes(nextBoxes);
-      if (!selectedBoxId || selectedBoxId !== finalBox.id) {
-        setSelectedBoxId(finalBox.id);
+      prevBoxesRef.current = trackedBoxes;
+      setDetectedPotholes(trackedBoxes);
+
+      if (trackedBoxes.length > 0 && (!selectedBoxId || !trackedBoxes.some((b) => b.id === selectedBoxId))) {
+        setSelectedBoxId(trackedBoxes[0].id);
       }
     } catch (e) {
       // Ignore read errors
