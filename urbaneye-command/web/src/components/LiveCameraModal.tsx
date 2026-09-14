@@ -41,6 +41,7 @@ interface CapturedItem {
 
 export interface DetectedPotholeBox {
   id: string;
+  trackId: number; // ByteTrack persistent track ID
   type: string;
   label: string; // e.g. "pothole 0.86"
   confidence: number;
@@ -60,6 +61,7 @@ export interface DetectedPotholeBox {
   color: string;
   labelYOffset: number; // Staggering offset to prevent label clutter
 }
+
 
 const AI_ENGINES = [
   { id: 'YOLOv11x-seg', label: 'YOLOv11x-seg PWD Edge (TensorRT INT8)', latency: '6.4 ms' },
@@ -339,8 +341,9 @@ export const LiveCameraModal: React.FC<LiveCameraModalProps> = ({
 
           rawCandidateBoxes.push({
             id: `pothole-sector-${idx}`,
+            trackId: 101 + idx,
             type: 'POTHOLE',
-            label: `pothole ${conf}`,
+            label: `pothole #${101 + idx} (${conf})`,
             confidence: conf,
             confidenceHistory: [conf],
             status: 'UNCONFIRMED',
@@ -358,6 +361,7 @@ export const LiveCameraModal: React.FC<LiveCameraModalProps> = ({
             color: palette[idx % palette.length],
             labelYOffset: 0,
           });
+
         }
       });
 
