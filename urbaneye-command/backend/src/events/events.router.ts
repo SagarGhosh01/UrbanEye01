@@ -289,7 +289,7 @@ export async function handleIngestEvent(req: Request, res: Response): Promise<vo
 
     // 🛡️ DEDUPLICATION ENGINE SAFETY NET:
     const nowMs = timestamp ? new Date(timestamp).getTime() : Date.now();
-    const DEDUPLICATION_RADIUS_METERS = 10; // 10-meter spatial threshold
+    const DEDUPLICATION_RADIUS_METERS = 15; // 15-meter spatial threshold
     const DEDUPLICATION_TIME_MS = 24 * 60 * 60 * 1000; // 24-hour configurable window
 
     let duplicateEvent = IN_MEMORY_EVENTS.find((e) => {
@@ -300,13 +300,44 @@ export async function handleIngestEvent(req: Request, res: Response): Promise<vo
       return dist <= DEDUPLICATION_RADIUS_METERS;
     });
 
+    // Database lookup fallback for spatial deduplication if memory cache misses
+    if (!duplicateEvent) {
+      try {
+        const nearbyDbEvents = await prisma.roadEvent.findMany({
+          where: {
+            districtId: resolvedDistrictId,
+            type: rawType,
+            status: { in: ['NEW', 'REVIEWED', 'ASSIGNED_FOR_REPAIR'] },
+            latitude: { gte: numLat - 0.0003, lte: numLat + 0.0003 },
+            longitude: { gte: numLon - 0.0003, lte: numLon + 0.0003 },
+          },
+          orderBy: { timestamp: 'desc' },
+          take: 5,
+        });
+
+        for (const dbEvt of nearbyDbEvents) {
+          const dist = getDistanceMeters(numLat, numLon, dbEvt.latitude, dbEvt.longitude);
+          if (dist <= DEDUPLICATION_RADIUS_METERS) {
+            duplicateEvent = dbEvt as any;
+            if (!IN_MEMORY_EVENTS.some((mem) => mem.id === dbEvt.id)) {
+              IN_MEMORY_EVENTS.unshift(duplicateEvent);
+            }
+            break;
+          }
+        }
+      } catch (dbSearchErr) {
+        console.warn('Prisma spatial dedup search warning:', (dbSearchErr as Error).message);
+      }
+    }
+
     if (duplicateEvent) {
       duplicateEvent.timesSeen = (duplicateEvent.timesSeen || 1) + 1;
       duplicateEvent.timestamp = new Date(nowMs);
       if (rawConfidence > duplicateEvent.confidence) {
         duplicateEvent.confidence = rawConfidence;
       }
-      if (rawImage && (!duplicateEvent.imageSnippet || rawImage.length > (duplicateEvent.imageSnippet?.length || 0))) {
+      if (rawImage && rawImage.length > 50) {
+        // Update image snippet if provided
         duplicateEvent.imageSnippet = rawImage;
       }
       if (heading !== null) duplicateEvent.heading = Number(heading);

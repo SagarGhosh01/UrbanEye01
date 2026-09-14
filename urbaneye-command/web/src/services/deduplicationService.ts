@@ -29,8 +29,8 @@ export interface DeduplicationConfig {
 
 class DeduplicationService {
   private config: DeduplicationConfig = {
-    radiusMeters: 10,
-    timeWindowMs: 60000,
+    radiusMeters: 15,
+    timeWindowMs: 24 * 60 * 60 * 1000, // 24-hour deduplication window
     maxHammingDistance: 5,
   };
 

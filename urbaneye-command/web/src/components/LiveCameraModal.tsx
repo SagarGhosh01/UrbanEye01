@@ -489,15 +489,19 @@ export const LiveCameraModal: React.FC<LiveCameraModalProps> = ({
 
     try {
       let imageSnippet: string | null = overrideImage || null;
-      if (!imageSnippet && canvasRef.current && videoRef.current) {
-        const canvas = canvasRef.current;
+      
+      // Capture high-resolution frame directly from video stream onto dedicated offscreen canvas
+      if (!imageSnippet && videoRef.current && cameraActive) {
         const video = videoRef.current;
-        canvas.width = video.videoWidth || 640;
-        canvas.height = video.videoHeight || 480;
-        const ctx = canvas.getContext('2d');
+        const vW = video.videoWidth || 1280;
+        const vH = video.videoHeight || 720;
+        const offscreenCanvas = document.createElement('canvas');
+        offscreenCanvas.width = vW;
+        offscreenCanvas.height = vH;
+        const ctx = offscreenCanvas.getContext('2d');
         if (ctx) {
-          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-          imageSnippet = canvas.toDataURL('image/jpeg', 0.85);
+          ctx.drawImage(video, 0, 0, vW, vH);
+          imageSnippet = offscreenCanvas.toDataURL('image/jpeg', 0.88);
         }
       }
 
