@@ -612,15 +612,9 @@ const defaultStats: AnalyticsStats = {
                         <div className="h-full flex flex-col items-center justify-center p-6 text-center text-slate-400">
                           <Radio className="w-8 h-8 mb-2 opacity-50 animate-pulse text-[#1E7F73]" />
                           <p className="text-xs font-semibold text-slate-300">Listening on Mesh Socket</p>
-                          <p className="text-[11px] text-slate-400 mt-1 max-w-[200px]">
-                            Pair a mobile phone sensor to stream live road defect telemetry into this command view.
+                          <p className="text-[11px] text-slate-400 mt-1 max-w-[220px]">
+                            Edge phone camera is auto-paired in the background. Live road defects will stream directly into this command view.
                           </p>
-                          <button
-                            onClick={() => setIsPairingModalOpen(true)}
-                            className="mt-3 px-3 py-1.5 text-xs font-bold rounded bg-[#1E7F73] text-white hover:bg-[#186a60] transition shadow-sm"
-                          >
-                            + Pair Bus Sensor
-                          </button>
                         </div>
                       ) : (
                         events.slice(0, 15).map((ev) => (

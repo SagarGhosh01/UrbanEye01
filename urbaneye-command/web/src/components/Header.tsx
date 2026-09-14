@@ -164,17 +164,7 @@ export const Header: React.FC<HeaderProps> = ({
             </button>
           )}
 
-          {/* Primary Action: Pair Bus (PIN) */}
-          <button
-            type="button"
-            onClick={onOpenPairing}
-            className="flex items-center justify-center space-x-1.5 px-3 py-1.5 text-xs font-bold rounded-lg bg-[#1E7F73] hover:bg-[#186a60] text-white shadow-sm transition active:scale-95 shrink-0"
-            title="Pair a bus-mounted phone sensor using 6-digit PIN"
-            aria-label="Pair Bus using 6-digit PIN"
-          >
-            <Bus className="w-3.5 h-3.5 shrink-0" />
-            <span className="hidden sm:inline">Pair Bus (PIN)</span>
-          </button>
+          {/* Silent Auto-Pairing Active: Pair Bus PIN button hidden */}
 
           {/* Persona Switcher Dropdown */}
           {onSwitchUser && (
