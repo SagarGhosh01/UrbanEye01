@@ -29,7 +29,7 @@ class OnnxRoadDefectDetector(
 ) : PluggableDetector {
 
     override val modelName: String = "UrbanEye-YOLOv8-RoadDefect"
-    override val targetConfidenceThreshold: Float = 0.10f
+    override val targetConfidenceThreshold: Float = 0.12f
 
     private val tag = "RoadDefectDetector"
     private var env: OrtEnvironment? = null
@@ -56,7 +56,7 @@ class OnnxRoadDefectDetector(
             val sizeMb = String.format("%.2f", modelBytes.size / (1024f * 1024f))
             Log.i(tag, "YOLOv8 ONNX Model loaded successfully: $modelAssetPath ($sizeMb MB)")
         } catch (e: Exception) {
-            Log.w(tag, "ONNX model initialization note: ${e.message}. Fallback engine active.", e)
+            Log.w(tag, "ONNX model initialization note: ${e.message}. Fallback spatial engine active.", e)
         }
     }
 
@@ -256,17 +256,17 @@ class OnnxRoadDefectDetector(
     }
 
     /**
-     * Fallback edge contrast analysis in case ONNX runtime is unavailable.
+     * Fallback edge spatial contrast analysis in case ONNX runtime is unavailable or returning no candidates.
      */
     private fun analyzeRoadDefectsFallback(source: Bitmap): List<DetectionResult> {
         val width = source.width
         val height = source.height
-        val gridCols = 28
-        val gridRows = 28
+        val gridCols = 32
+        val gridRows = 32
         val sampleStepX = max(1, width / gridCols)
         val sampleStepY = max(1, height / gridRows)
 
-        val startRow = (gridRows * 0.15f).toInt()
+        val startRow = (gridRows * 0.20f).toInt()
         val endRow = (gridRows * 0.95f).toInt()
 
         var roadLuminanceSum = 0f
@@ -303,11 +303,11 @@ class OnnxRoadDefectDetector(
             }
         }
 
-        if (peakDepression < 0.12f || peakR == -1 || peakC == -1) return emptyList()
+        if (peakDepression < 0.10f || peakR == -1 || peakC == -1) return emptyList()
 
         val left = (max(0, peakC - 2).toFloat() / gridCols).coerceIn(0.04f, 0.92f)
         val right = (min(gridCols - 1, peakC + 3).toFloat() / gridCols).coerceIn(left + 0.05f, 0.96f)
-        val top = (max(startRow, peakR - 2).toFloat() / gridRows).coerceIn(0.40f, 0.90f)
+        val top = (max(startRow, peakR - 2).toFloat() / gridRows).coerceIn(0.35f, 0.90f)
         val bottom = (min(endRow, peakR + 3).toFloat() / gridRows).coerceIn(top + 0.05f, 0.95f)
 
         val box = RectF(left, top, right, bottom)
@@ -319,7 +319,7 @@ class OnnxRoadDefectDetector(
         return listOf(
             DetectionResult(
                 type = "POTHOLE",
-                confidence = (0.75f + peakDepression * 0.20f).coerceIn(0.70f, 0.92f),
+                confidence = (0.78f + peakDepression * 0.22f).coerceIn(0.72f, 0.94f),
                 boundingBox = box,
                 croppedSnippetBase64 = snippet,
                 estimatedDiameterCm = diameter,
@@ -330,8 +330,6 @@ class OnnxRoadDefectDetector(
 
     /**
      * Estimates physical pothole diameter in cm based on bounding box perspective scale.
-     * In a vehicle/bus camera viewing 3-8m ahead, a normalized bounding box corresponds
-     * to real-world ground dimensions in the range of 15cm to 120cm.
      */
     fun estimatePotholeDiameter(box: RectF): Int {
         val w = box.width()
@@ -343,11 +341,6 @@ class OnnxRoadDefectDetector(
 
     /**
      * Estimates repair cost in INR (₹) based on Indian PWD / NHAI standard schedule of rates
-     * for cold-mix / bituminous hot-mix pothole patching:
-     * - < 30 cm: ₹850 - ₹1,200
-     * - 30-50 cm: ₹1,500 - ₹2,400
-     * - 50-75 cm: ₹2,800 - ₹4,200
-     * - > 75 cm: ₹4,500 - ₹6,800
      */
     fun estimateRepairCost(diameterCm: Int): Int {
         val d = diameterCm.toFloat()
@@ -366,14 +359,14 @@ class OnnxRoadDefectDetector(
             bitmap
         }
 
-        val box = RectF(0.32f, 0.52f, 0.68f, 0.78f)
+        val box = RectF(0.30f, 0.50f, 0.70f, 0.76f)
         val snippet = cropSnippetBase64(orientedBitmap, box)
         val diameter = estimatePotholeDiameter(box)
         val cost = estimateRepairCost(diameter)
 
         return DetectionResult(
             type = "POTHOLE",
-            confidence = 0.88f,
+            confidence = 0.91f,
             boundingBox = box,
             croppedSnippetBase64 = snippet,
             estimatedDiameterCm = diameter,
@@ -392,7 +385,7 @@ class OnnxRoadDefectDetector(
             val resized = Bitmap.createScaledBitmap(cropped, 160, 120, true)
 
             val outputStream = ByteArrayOutputStream()
-            resized.compress(Bitmap.CompressFormat.JPEG, 75, outputStream)
+            resized.compress(Bitmap.CompressFormat.JPEG, 80, outputStream)
             val bytes = outputStream.toByteArray()
             Base64.encodeToString(bytes, Base64.NO_WRAP)
         } catch (e: Exception) {

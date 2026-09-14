@@ -6,25 +6,25 @@
     android:layout_height="match_parent"
     android:background="@color/black">
 
-    <!-- 1. Real Continuous Rear Camera Feed -->
+    <!-- 1. Real Continuous Rear Camera Viewfinder -->
     <androidx.camera.view.PreviewView
         android:id="@+id/viewFinder"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         app:scaleType="fillCenter" />
 
-    <!-- 2. Real-Time Detection Bounding Box Overlay -->
+    <!-- 2. Real-Time HUD Bounding Box Overlay -->
     <com.urbaneye.mobile.ui.OverlayView
         android:id="@+id/overlayView"
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
 
-    <!-- 3. Top Operator HUD Bar (Mounted Bus Dashboard) -->
+    <!-- 3. Top Operator HUD Bar (Mounted Vehicle / Phone Dashboard) -->
     <LinearLayout
         android:id="@+id/topHudBar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="#CC07162C"
+        android:background="#DC0F172A"
         android:orientation="vertical"
         android:paddingStart="16dp"
         android:paddingTop="12dp"
@@ -32,7 +32,7 @@
         android:paddingBottom="12dp"
         app:layout_constraintTop_toTopOf="parent">
 
-        <!-- Line 1: Agency Brand & Status -->
+        <!-- Line 1: Agency Brand, Live Dot & Status -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -42,21 +42,21 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="URBANEYE"
+                android:text="URBANEYE AI"
                 android:textColor="@color/white"
-                android:textSize="14sp"
+                android:textSize="15sp"
                 android:textStyle="bold" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="6dp"
+                android:layout_marginStart="8dp"
                 android:background="#33F59E0B"
                 android:paddingStart="6dp"
                 android:paddingTop="2dp"
                 android:paddingEnd="6dp"
                 android:paddingBottom="2dp"
-                android:text="BUS SENSOR"
+                android:text="EDGE SENSOR"
                 android:textColor="@color/gov_amber"
                 android:textSize="10sp"
                 android:textStyle="bold" />
@@ -75,7 +75,7 @@
                 android:paddingTop="2dp"
                 android:paddingEnd="8dp"
                 android:paddingBottom="2dp"
-                android:text="PAIRING REQUIRED"
+                android:text="VIEWFINDER EDGE AI"
                 android:textColor="@color/gov_emerald"
                 android:textSize="11sp"
                 android:textStyle="bold" />
@@ -94,7 +94,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="GPS: 19.0760, 72.8777 (28 km/h)"
-                android:textColor="#CBD5E1"
+                android:textColor="#94A3B8"
                 android:textSize="11sp" />
 
             <View
@@ -106,7 +106,7 @@
                 android:id="@+id/tvFps"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="AI: 8.0 FPS"
+                android:text="AI: 12.5 FPS"
                 android:textColor="@color/gov_amber"
                 android:textSize="11sp"
                 android:textStyle="bold" />
@@ -122,20 +122,117 @@
                 android:textStyle="bold" />
         </LinearLayout>
 
-        <!-- Line 3: Live Detection Status -->
+        <!-- Line 3: Live Detection Status Bar -->
         <TextView
             android:id="@+id/tvDetectionStatus"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="6dp"
-            android:text="🟢 AI Scanning road surface..."
+            android:text="🟢 AI Scanning road surface in real-time..."
             android:textColor="#64748B"
-            android:textSize="10sp"
+            android:textSize="11sp"
             android:singleLine="true"
             android:ellipsize="end" />
     </LinearLayout>
 
-    <!-- 4. PIN Pairing Overlay Screen (Shown when unpaired) -->
+    <!-- 4. Floating Quick Action Bar on Viewfinder -->
+    <LinearLayout
+        android:id="@+id/cameraActionRow"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="20dp"
+        android:orientation="horizontal"
+        app:layout_constraintBottom_toTopOf="@id/detectionBanner"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <Button
+            android:id="@+id/btnToggleTorch"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:backgroundTint="#DC0F172A"
+            android:text="🔦 Flash"
+            android:textColor="@color/white"
+            android:textSize="11sp" />
+
+        <Button
+            android:id="@+id/btnManualSnap"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="6dp"
+            android:backgroundTint="#DC2563EB"
+            android:text="📸 Snap &amp; Send"
+            android:textColor="@color/white"
+            android:textSize="11sp"
+            android:textStyle="bold" />
+
+        <Button
+            android:id="@+id/btnTriggerTestDefect"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="6dp"
+            android:backgroundTint="#DCDC2626"
+            android:text="⚡ Test Pothole"
+            android:textColor="@color/white"
+            android:textSize="11sp" />
+
+        <Button
+            android:id="@+id/btnShowPinOverlay"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="6dp"
+            android:backgroundTint="#DC0F172A"
+            android:text="⚙️ Setup"
+            android:textColor="@color/gov_amber"
+            android:textSize="11sp" />
+    </LinearLayout>
+
+    <!-- 5. Live Detection Alert Banner (bottom of screen) -->
+    <LinearLayout
+        android:id="@+id/detectionBanner"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="#F0F97316"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingStart="16dp"
+        android:paddingTop="10dp"
+        android:paddingEnd="16dp"
+        android:paddingBottom="10dp"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:id="@+id/tvDetectionBannerType"
+            android:text="🚨 POTHOLE DETECTED"
+            android:textColor="@color/black"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/tvDetectionBannerSize"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Ø 45 cm"
+            android:textColor="@color/black"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            android:layout_marginEnd="12dp" />
+
+        <TextView
+            android:id="@+id/tvDetectionBannerCost"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Fix: ₹1,850"
+            android:textColor="@color/black"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <!-- 6. PIN Pairing Overlay Screen (Shown when setup requested) -->
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/pairingOverlay"
         android:layout_width="match_parent"
@@ -150,8 +247,8 @@
             android:id="@+id/tvPairingTitle"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="60dp"
-            android:text="URBANEYE MOBILE"
+            android:layout_marginTop="50dp"
+            android:text="URBANEYE EDGE AI"
             android:textColor="@color/white"
             android:textSize="22sp"
             android:textStyle="bold"
@@ -165,7 +262,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
             android:gravity="center"
-            android:text="Public Bus Road Intelligence Sensor Platform\nMinistry of Road Transport &amp; Highways"
+            android:text="Public Bus &amp; Mobile Phone Edge AI Road Intelligence Sensor Platform\nMinistry of Road Transport &amp; Highways"
             android:textColor="#94A3B8"
             android:textSize="12sp"
             app:layout_constraintEnd_toEndOf="parent"
@@ -176,7 +273,7 @@
             android:id="@+id/cardPin"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="32dp"
+            android:layout_marginTop="28dp"
             app:cardBackgroundColor="#134074"
             app:cardCornerRadius="16dp"
             app:cardElevation="8dp"
@@ -187,7 +284,7 @@
                 android:layout_height="wrap_content"
                 android:gravity="center"
                 android:orientation="vertical"
-                android:padding="28dp">
+                android:padding="24dp">
 
                 <TextView
                     android:layout_width="wrap_content"
@@ -207,7 +304,7 @@
                     android:letterSpacing="0.2"
                     android:text="------"
                     android:textColor="@color/white"
-                    android:textSize="44sp"
+                    android:textSize="42sp"
                     android:textStyle="bold" />
 
                 <TextView
@@ -215,7 +312,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="12dp"
                     android:gravity="center"
-                    android:text="Enter this 6-digit PIN on the UrbanEye Command Web Portal under 'Pair a new bus' to bind to your district."
+                    android:text="Enter this 6-digit PIN on the UrbanEye Command Web Portal under 'Pair a new bus' to bind your device to your district."
                     android:textColor="#E2E8F0"
                     android:textSize="12sp" />
 
@@ -223,7 +320,7 @@
                     android:id="@+id/pbPairing"
                     android:layout_width="24dp"
                     android:layout_height="24dp"
-                    android:layout_marginTop="16dp"
+                    android:layout_marginTop="14dp"
                     android:indeterminateTint="@color/gov_amber" />
 
                 <TextView
@@ -306,81 +403,5 @@
             app:layout_constraintTop_toBottomOf="@id/btnRefreshPin" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
-
-    <!-- Floating Quick Action Buttons on Camera View -->
-    <LinearLayout
-        android:id="@+id/cameraActionRow"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginEnd="16dp"
-        android:layout_marginBottom="24dp"
-        android:orientation="horizontal"
-        app:layout_constraintBottom_toTopOf="@id/detectionBanner"
-        app:layout_constraintEnd_toEndOf="parent">
-
-        <Button
-            android:id="@+id/btnShowPinOverlay"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:backgroundTint="#CC07162C"
-            android:text="Show PIN"
-            android:textColor="@color/gov_amber"
-            android:textSize="11sp" />
-
-        <Button
-            android:id="@+id/btnTriggerTestDefect"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
-            android:backgroundTint="#CCDC2626"
-            android:text="⚡ Test Pothole"
-            android:textColor="@color/white"
-            android:textSize="11sp" />
-    </LinearLayout>
-
-    <!-- Live Detection Alert Banner (bottom of screen) -->
-    <LinearLayout
-        android:id="@+id/detectionBanner"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:background="#F0F97316"
-        android:orientation="horizontal"
-        android:gravity="center_vertical"
-        android:paddingStart="16dp"
-        android:paddingTop="10dp"
-        android:paddingEnd="16dp"
-        android:paddingBottom="10dp"
-        android:visibility="gone"
-        app:layout_constraintBottom_toBottomOf="parent">
-
-        <TextView
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:id="@+id/tvDetectionBannerType"
-            android:text="🚧 POTHOLE DETECTED"
-            android:textColor="@color/black"
-            android:textSize="13sp"
-            android:textStyle="bold" />
-
-        <TextView
-            android:id="@+id/tvDetectionBannerSize"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="ø 45 cm"
-            android:textColor="@color/black"
-            android:textSize="13sp"
-            android:textStyle="bold"
-            android:layout_marginEnd="12dp" />
-
-        <TextView
-            android:id="@+id/tvDetectionBannerCost"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Fix: ₹1,850"
-            android:textColor="@color/black"
-            android:textSize="13sp"
-            android:textStyle="bold" />
-    </LinearLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

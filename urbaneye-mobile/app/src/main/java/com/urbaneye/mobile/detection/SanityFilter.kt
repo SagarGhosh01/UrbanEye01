@@ -13,15 +13,15 @@ object SanityFilter {
     private const val TAG = "RoadSanityFilter"
 
     // Road perspective constraints
-    private const val MIN_ROAD_HORIZON_TOP = 0.02f     // Allow full-viewfinder detection
-    private const val MAX_BOTTOM_EDGE = 0.99f          // Below hood of bus
-    private const val MAX_FRAME_AREA_RATIO = 0.70f     // Allow prominent craters and test targets
-    private const val MIN_FRAME_AREA_RATIO = 0.001f    // Allow smaller road defects
+    private const val MIN_ROAD_HORIZON_TOP = 0.01f     // Allow full-viewfinder detection
+    private const val MAX_BOTTOM_EDGE = 0.99f          // Above hood of bus
+    private const val MAX_FRAME_AREA_RATIO = 0.85f     // Allow prominent craters and test targets
+    private const val MIN_FRAME_AREA_RATIO = 0.0005f    // Allow smaller road defects / distant cracks
 
     // Aspect ratio constraints: W / H
-    private const val MIN_ASPECT_RATIO = 0.20f
-    private const val MAX_ASPECT_RATIO = 5.0f
-    private const val MAX_PORTRAIT_RATIO = 4.5f
+    private const val MIN_ASPECT_RATIO = 0.12f
+    private const val MAX_ASPECT_RATIO = 8.5f
+    private const val MAX_PORTRAIT_RATIO = 6.0f
 
     /**
      * Evaluates whether a candidate bounding box represents a genuine road surface defect
@@ -34,18 +34,18 @@ object SanityFilter {
         val height = box.height()
 
         // 1. Basic dimension sanity
-        if (width <= 0.04f || height <= 0.03f) {
+        if (width <= 0.02f || height <= 0.015f) {
             Log.d(TAG, "Rejected defect: box dimensions too small (w=$width, h=$height)")
             return false
         }
 
-        // 2. Road Horizon Check (potholes cannot exist in sky or upper windshield)
+        // 2. Road Horizon Check (potholes cannot exist in extreme upper sky area)
         if (box.top < MIN_ROAD_HORIZON_TOP) {
             Log.d(TAG, "Rejected defect: box top (${box.top}) above road horizon ($MIN_ROAD_HORIZON_TOP)")
             return false
         }
 
-        // 3. Frame Area Occupancy Check (rejects handheld phone held near camera)
+        // 3. Frame Area Occupancy Check (rejects handheld phone held directly in front of camera)
         val area = width * height
         if (area > MAX_FRAME_AREA_RATIO) {
             Log.d(TAG, "Rejected defect: oversized area ($area > $MAX_FRAME_AREA_RATIO). Handheld phone/screen detected.")
@@ -57,12 +57,12 @@ object SanityFilter {
             return false
         }
 
-        // 4. Aspect Ratio Sanity (eliminates smartphone portrait rectangles)
+        // 4. Aspect Ratio Sanity (eliminates smartphone portrait rectangles ~9:19)
         val aspectRatio = width / height
         val portraitRatio = height / width
 
         if (portraitRatio > MAX_PORTRAIT_RATIO || aspectRatio < MIN_ASPECT_RATIO) {
-            Log.d(TAG, "Rejected defect: portrait aspect ratio (w/h=$aspectRatio, h/w=$portraitRatio). Matches smartphone format (~9:19).")
+            Log.d(TAG, "Rejected defect: extreme portrait aspect ratio (w/h=$aspectRatio, h/w=$portraitRatio). Matches smartphone format (~9:19).")
             return false
         }
 
