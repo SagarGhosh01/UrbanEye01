@@ -668,7 +668,7 @@ export const LiveCameraModal: React.FC<LiveCameraModalProps> = ({
                       <path d={`M ${box.x + box.w - 10} ${box.y + box.h} L ${box.x + box.w} ${box.y + box.h} L ${box.x + box.w} ${box.y + box.h - 10}`} stroke={strokeColor} strokeWidth="3" fill="none" />
 
                       {/* Staggered Label Tag preventing overlapping: e.g. "pothole 0.86" */}
-                      <g transform={`translate(${box.x}, ${Math.max(25, box.y - 18 + (box.labelYOffset || 0))})`}>
+                      <g transform={`translate(${box.x}, ${Math.max(55, box.y - 18 + (box.labelYOffset || 0))})`}>
                         <rect
                           width={Math.max(85, box.label.length * 7.5 + (isConfirmed ? 12 : 0))}
                           height="17"
@@ -690,10 +690,10 @@ export const LiveCameraModal: React.FC<LiveCameraModalProps> = ({
                   );
                 })}
 
-                {/* Searching HUD indicator when no defect is present */}
+                {/* Searching HUD indicator when no defect is present (Y=56 guarantees 0% overlap with top HUD bar!) */}
                 {detectedPotholes.length === 0 && (
-                  <g transform="translate(18, 28)" className="animate-pulse pointer-events-none">
-                    <rect width="245" height="26" rx="6" fill="rgba(15, 23, 42, 0.88)" stroke="#334155" strokeWidth="1" />
+                  <g transform="translate(18, 56)" className="animate-pulse pointer-events-none">
+                    <rect width="245" height="26" rx="6" fill="rgba(15, 23, 42, 0.90)" stroke="#334155" strokeWidth="1" />
                     <text x="10" y="17" fill="#38bdf8" fontSize="10" fontWeight="bold" fontFamily="monospace">
                       🔍 SCANNING ROAD SURFACE (0 DEFECTS)
                     </text>
