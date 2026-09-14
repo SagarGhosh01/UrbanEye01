@@ -697,6 +697,9 @@ const defaultStats: AnalyticsStats = {
         isOpen={isLiveCameraOpen}
         onClose={() => {
           setIsLiveCameraOpen(false);
+          if (user?.role === 'CITIZEN_REPORTER') {
+            handleLogout();
+          }
         }}
         onEventIngested={(newEvent?: any) => {
           if (newEvent) {
