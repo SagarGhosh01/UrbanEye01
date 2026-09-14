@@ -150,17 +150,17 @@ export const Header: React.FC<HeaderProps> = ({
             </span>
           </div>
 
-          {/* Live Phone Camera Sensor Button (Only visible for Citizen Reporters) */}
-          {onOpenLiveCamera && user?.role === 'CITIZEN_REPORTER' && (
+          {/* Live Edge Camera Sensor Button (Accessible for ALL system roles) */}
+          {onOpenLiveCamera && (
             <button
               type="button"
               onClick={onOpenLiveCamera}
               className="flex items-center justify-center space-x-1.5 px-3 py-1.5 text-xs font-bold rounded-lg bg-teal-600 hover:bg-teal-700 text-white shadow-sm transition active:scale-95 shrink-0"
-              title="Open Live Phone / Web Camera Sensor for Real-Time Edge AI Detection"
+              title="Open Live Edge Phone / Web Camera Sensor for Real-Time AI Detection & Upload"
               aria-label="Open Live Phone Camera"
             >
               <Camera className="w-3.5 h-3.5 shrink-0 text-amber-300 animate-pulse" />
-              <span className="hidden sm:inline">Live Camera (Phone)</span>
+              <span className="hidden sm:inline">Live Camera / Upload</span>
             </button>
           )}
 

@@ -320,13 +320,12 @@ export async function handleIngestEvent(req: Request, res: Response): Promise<vo
       rawConfidence
     );
 
-    // 🛡️ DEDUPLICATION ENGINE SAFETY NET:
+    // 🛡️ DEDUPLICATION ENGINE SAFETY NET: Strict Latitude/Longitude Location Protection
     const nowMs = timestamp ? new Date(timestamp).getTime() : Date.now();
-    const DEDUPLICATION_RADIUS_METERS = 15; // 15-meter spatial threshold
+    const DEDUPLICATION_RADIUS_METERS = 20; // 20-meter spatial coordinate radius
     const DEDUPLICATION_TIME_MS = 24 * 60 * 60 * 1000; // 24-hour configurable window
 
     let duplicateEvent = IN_MEMORY_EVENTS.find((e) => {
-      if (e.type !== rawType) return false;
       const eTime = new Date(e.timestamp).getTime();
       if (Math.abs(nowMs - eTime) > DEDUPLICATION_TIME_MS) return false;
       const dist = getDistanceMeters(numLat, numLon, Number(e.latitude), Number(e.longitude));
@@ -339,13 +338,12 @@ export async function handleIngestEvent(req: Request, res: Response): Promise<vo
         const nearbyDbEvents = await prisma.roadEvent.findMany({
           where: {
             districtId: resolvedDistrictId,
-            type: rawType,
             status: { in: ['NEW', 'REVIEWED', 'ASSIGNED_FOR_REPAIR'] },
-            latitude: { gte: numLat - 0.0003, lte: numLat + 0.0003 },
-            longitude: { gte: numLon - 0.0003, lte: numLon + 0.0003 },
+            latitude: { gte: numLat - 0.0004, lte: numLat + 0.0004 },
+            longitude: { gte: numLon - 0.0004, lte: numLon + 0.0004 },
           },
           orderBy: { timestamp: 'desc' },
-          take: 5,
+          take: 10,
         });
 
         for (const dbEvt of nearbyDbEvents) {
