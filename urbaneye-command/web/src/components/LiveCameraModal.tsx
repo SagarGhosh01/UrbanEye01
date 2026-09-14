@@ -418,17 +418,32 @@ export const LiveCameraModal: React.FC<LiveCameraModalProps> = ({
   };
 
 
-  const captureAndTransmit = async (overrideType?: string, overrideConf?: number) => {
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const imgData = event.target?.result as string;
+      if (imgData) {
+        captureAndTransmit(imgData);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const captureAndTransmit = async (overrideImage?: string, overrideType?: string, overrideConf?: number) => {
     if (isCapturing) return;
     setIsCapturing(true);
 
     const activeBox = detectedPotholes.find((b) => b.id === selectedBoxId) || detectedPotholes[0];
     const typeToIngest = overrideType || activeBox?.type || 'POTHOLE';
-    const confToIngest = overrideConf || activeBox?.confidence || 0.86;
+    const confToIngest = overrideConf || activeBox?.confidence || 0.88;
 
     try {
-      let imageSnippet: string | null = null;
-      if (canvasRef.current && videoRef.current && cameraActive) {
+      let imageSnippet: string | null = overrideImage || null;
+      if (!imageSnippet && canvasRef.current && videoRef.current) {
         const canvas = canvasRef.current;
         const video = videoRef.current;
         canvas.width = video.videoWidth || 640;
@@ -436,7 +451,23 @@ export const LiveCameraModal: React.FC<LiveCameraModalProps> = ({
         const ctx = canvas.getContext('2d');
         if (ctx) {
           ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-          imageSnippet = canvas.toDataURL('image/jpeg', 0.65);
+          imageSnippet = canvas.toDataURL('image/jpeg', 0.85);
+        }
+      }
+
+      // High quality fallback frame generator if canvas image is empty
+      if (!imageSnippet) {
+        const dummyCanvas = document.createElement('canvas');
+        dummyCanvas.width = 640;
+        dummyCanvas.height = 480;
+        const dCtx = dummyCanvas.getContext('2d');
+        if (dCtx) {
+          dCtx.fillStyle = '#0f172a';
+          dCtx.fillRect(0, 0, 640, 480);
+          dCtx.fillStyle = '#38bdf8';
+          dCtx.font = '20px monospace';
+          dCtx.fillText('URBANEYE LIVE SENSOR SNAPSHOT', 120, 240);
+          imageSnippet = dummyCanvas.toDataURL('image/jpeg', 0.80);
         }
       }
 
@@ -472,9 +503,13 @@ export const LiveCameraModal: React.FC<LiveCameraModalProps> = ({
         timestamp: new Date().toISOString(),
       };
 
+      const token = localStorage.getItem('urbaneye_token');
       const response = await fetch('/api/events/ingest', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify(payload),
       });
 
@@ -484,13 +519,13 @@ export const LiveCameraModal: React.FC<LiveCameraModalProps> = ({
         const isDup = Boolean(resData.deduplicated);
 
         if (isDup) {
-          const msg = `🛡️ Auto-Detected: ${readableType} updated nearby`;
+          const msg = `🛡️ Ingested: ${readableType} updated nearby on main dashboard!`;
           setLastTransmitted(msg);
-          speakAlert(`${readableType} updated nearby.`);
+          speakAlert(`${readableType} updated on central command.`);
         } else {
-          const msg = `✨ Auto-Detected: ${readableType} captured & transmitted live`;
+          const msg = `✨ Manual Capture Success: ${readableType} transmitted directly to server & main dashboard!`;
           setLastTransmitted(msg);
-          speakAlert(`${readableType} detected with ${Math.round(confToIngest * 100)} percent confidence. Logged to central command.`);
+          speakAlert(`${readableType} captured and transmitted to central command.`);
         }
 
         const historyEntry: CapturedItem = {
@@ -508,13 +543,16 @@ export const LiveCameraModal: React.FC<LiveCameraModalProps> = ({
         if (onEventIngested) onEventIngested();
       } else {
         console.warn('Ingest HTTP status non-200:', response.status);
+        setLastTransmitted('❌ Server Ingestion HTTP Error - Retrying connection...');
       }
     } catch (err: any) {
       console.error('Failed to transmit camera detection:', err);
+      setLastTransmitted('❌ Failed to transmit frame to server.');
     } finally {
       setIsCapturing(false);
     }
   };
+
 
   if (!isOpen) return null;
 
@@ -825,31 +863,50 @@ export const LiveCameraModal: React.FC<LiveCameraModalProps> = ({
             </div>
           )}
 
-          {/* Action Execution Bar - Automatic Stream Active */}
-          <div className="flex flex-col sm:flex-row items-center gap-2">
+          {/* Action Execution Bar - Manual & Automatic Control */}
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleFileUpload}
+            accept="image/*"
+            className="hidden"
+          />
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
             <button
               type="button"
               onClick={() => setAutoDetectLoop(!autoDetectLoop)}
-              className={`w-full sm:flex-1 py-3 px-4 rounded-xl border font-extrabold flex items-center justify-center space-x-2 transition min-h-[44px] ${
+              className={`w-full py-2.5 px-3 rounded-xl border font-extrabold flex items-center justify-center space-x-1.5 transition min-h-[44px] ${
                 autoDetectLoop
                   ? 'bg-amber-500/20 border-amber-400 text-amber-300 animate-pulse'
                   : 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700'
               }`}
             >
               <Activity className="w-4 h-4 text-amber-400" />
-              <span>{autoDetectLoop ? `Stop Real-Time Auto AI Scan` : `Start Real-Time Auto AI Scan`}</span>
+              <span className="truncate">{autoDetectLoop ? 'Stop Auto AI Scan' : 'Start Auto AI Scan'}</span>
             </button>
 
             <button
               type="button"
               onClick={() => captureAndTransmit()}
-              disabled={isCapturing || !cameraActive}
-              className="w-full sm:flex-1 py-3 px-4 rounded-xl bg-[#1E7F73] hover:bg-[#186a60] text-white font-extrabold flex items-center justify-center space-x-2 shadow-lg transition active:scale-95 disabled:opacity-50 min-h-[44px]"
+              disabled={isCapturing}
+              className="w-full py-2.5 px-3 rounded-xl bg-[#1E7F73] hover:bg-[#186a60] text-white font-extrabold flex items-center justify-center space-x-1.5 shadow-lg transition active:scale-95 disabled:opacity-50 min-h-[44px]"
             >
               <Zap className="w-4 h-4 text-amber-300 animate-bounce" />
-              <span>{isCapturing ? 'Transmitting Ingestion...' : 'Capture & Ingest Frame Now'}</span>
+              <span className="truncate">{isCapturing ? 'Ingesting...' : 'Capture & Ingest Frame'}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isCapturing}
+              className="w-full py-2.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-teal-300 font-extrabold flex items-center justify-center space-x-1.5 transition active:scale-95 disabled:opacity-50 min-h-[44px]"
+            >
+              <ImageIcon className="w-4 h-4 text-teal-400" />
+              <span className="truncate">Upload & Ingest Photo</span>
             </button>
           </div>
+
 
           {/* Engine & Vision Mode Selector */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 bg-slate-950 p-2.5 rounded-xl border border-slate-800">
