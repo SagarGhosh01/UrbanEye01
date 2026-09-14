@@ -1,5 +1,6 @@
 import express from 'express';
 import http from 'http';
+import https from 'https';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import path from 'path';
@@ -59,8 +60,6 @@ app.use('/api/predictive', predictiveRouter);
 app.use('/api/models', modelsRouter);
 app.use('/api/gps', gpsRouter);
 
-
-
 // Serve uploaded images (e.g. citizen reports, camera captures)
 const uploadsDir = path.resolve(process.cwd(), 'uploads');
 if (!fs.existsSync(uploadsDir)) {
@@ -96,6 +95,31 @@ if (clientDistPath) {
   });
 }
 
+// Render Free Tier Anti-Sleep Keep-Alive Heartbeat
+function startRenderKeepAlive() {
+  const keepAliveUrl = process.env.RENDER_EXTERNAL_URL || process.env.PUBLIC_URL || process.env.VITE_API_URL;
+  if (!keepAliveUrl) return;
+
+  const targetHealthUrl = keepAliveUrl.endsWith('/api/health')
+    ? keepAliveUrl
+    : `${keepAliveUrl.replace(/\/$/, '')}/api/health`;
+
+  console.log(`⏱️ Render Free Tier Keep-Alive enabled! Pinging ${targetHealthUrl} every 10 mins...`);
+  setInterval(() => {
+    try {
+      const parsedUrl = new URL(targetHealthUrl);
+      const httpModule = parsedUrl.protocol === 'https:' ? https : http;
+      httpModule.get(targetHealthUrl, (res) => {
+        console.log(`[Keep-Alive Heartbeat] Status ${res.statusCode} at ${new Date().toISOString()}`);
+      }).on('error', (err) => {
+        console.warn(`[Keep-Alive Notice] ${err.message}`);
+      });
+    } catch (e) {
+      // Ignore invalid URL errors
+    }
+  }, 10 * 60 * 1000);
+}
+
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
   console.log(`====================================================`);
@@ -103,4 +127,5 @@ server.listen(PORT, () => {
   console.log(`📡 WebSocket / Socket.IO live intelligence streaming active`);
   console.log(`🔗 REST API endpoints mounted at /api/*`);
   console.log(`====================================================`);
+  startRenderKeepAlive();
 });

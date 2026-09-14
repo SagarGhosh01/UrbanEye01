@@ -22,10 +22,34 @@ function getHeaders(): HeadersInit {
   };
 }
 
+async function fetchWithRetry(url: string, options?: RequestInit, retries = 3, delay = 2000): Promise<Response> {
+  for (let i = 0; i < retries; i++) {
+    try {
+      const res = await fetch(url, options);
+      if ((res.status === 502 || res.status === 503 || res.status === 504) && i < retries - 1) {
+        console.warn(`[Render Cold-Start Retry ${i + 1}/${retries}] HTTP ${res.status}. Retrying in ${delay}ms...`);
+        await new Promise((r) => setTimeout(r, delay));
+        delay *= 1.5;
+        continue;
+      }
+      return res;
+    } catch (err) {
+      if (i < retries - 1) {
+        console.warn(`[Render Connection Retry ${i + 1}/${retries}] Retrying in ${delay}ms...`);
+        await new Promise((r) => setTimeout(r, delay));
+        delay *= 1.5;
+      } else {
+        throw err;
+      }
+    }
+  }
+  return fetch(url, options);
+}
+
 export const api = {
   // Auth
   async login(email: string, password: string):Promise<{ token: string; user: User }> {
-    const res = await fetch(`${API_BASE}/auth/login`, {
+    const res = await fetchWithRetry(`${API_BASE}/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password }),
@@ -38,38 +62,38 @@ export const api = {
   },
 
   async getMe(): Promise<User> {
-    const res = await fetch(`${API_BASE}/auth/me`, { headers: getHeaders() });
+    const res = await fetchWithRetry(`${API_BASE}/auth/me`, { headers: getHeaders() });
     if (!res.ok) throw new Error('Session expired or unauthorized');
     return res.json();
   },
 
   // Geography
   async getStates(): Promise<State[]> {
-    const res = await fetch(`${API_BASE}/geography/states`, { headers: getHeaders() });
+    const res = await fetchWithRetry(`${API_BASE}/geography/states`, { headers: getHeaders() });
     if (!res.ok) throw new Error('Failed to load states');
     return res.json();
   },
 
   async getDistricts(stateId: string): Promise<District[]> {
-    const res = await fetch(`${API_BASE}/geography/states/${stateId}/districts`, { headers: getHeaders() });
+    const res = await fetchWithRetry(`${API_BASE}/geography/states/${stateId}/districts`, { headers: getHeaders() });
     if (!res.ok) throw new Error('Failed to load districts');
     return res.json();
   },
 
   async getDistrict(districtId: string): Promise<District> {
-    const res = await fetch(`${API_BASE}/geography/districts/${districtId}`, { headers: getHeaders() });
+    const res = await fetchWithRetry(`${API_BASE}/geography/districts/${districtId}`, { headers: getHeaders() });
     if (!res.ok) throw new Error('Failed to load district details');
     return res.json();
   },
 
   async getNationalSummary(): Promise<NationalSummaryResponse> {
-    const res = await fetch(`${API_BASE}/geography/national/summary`, { headers: getHeaders() });
+    const res = await fetchWithRetry(`${API_BASE}/geography/national/summary`, { headers: getHeaders() });
     if (!res.ok) throw new Error('Failed to load national summary');
     return res.json();
   },
 
   async getStateSummary(stateId: string): Promise<StateSummaryResponse> {
-    const res = await fetch(`${API_BASE}/geography/states/${stateId}/summary`, { headers: getHeaders() });
+    const res = await fetchWithRetry(`${API_BASE}/geography/states/${stateId}/summary`, { headers: getHeaders() });
     if (!res.ok) throw new Error('Failed to load state summary');
     return res.json();
   },
@@ -91,7 +115,7 @@ export const api = {
     if (params.limit) query.set('limit', params.limit.toString());
     if (params.offset) query.set('offset', params.offset.toString());
 
-    const res = await fetch(`${API_BASE}/events?${query.toString()}`, { headers: getHeaders() });
+    const res = await fetchWithRetry(`${API_BASE}/events?${query.toString()}`, { headers: getHeaders() });
     if (!res.ok) throw new Error('Failed to fetch road events');
     return res.json();
   },
@@ -104,7 +128,7 @@ export const api = {
     manualLocationName?: string;
     type?: string;
   }): Promise<{ success: boolean; noDefect?: boolean; message?: string; event?: RoadEvent }> {
-    const res = await fetch(`${API_BASE}/events/citizen-report`, {
+    const res = await fetchWithRetry(`${API_BASE}/events/citizen-report`, {
       method: 'POST',
       headers: getHeaders(),
       body: JSON.stringify(data),
@@ -117,7 +141,7 @@ export const api = {
   },
 
   async getMyCitizenReports(): Promise<{ success: boolean; count: number; reports: RoadEvent[] }> {
-    const res = await fetch(`${API_BASE}/events/my-reports`, { headers: getHeaders() });
+    const res = await fetchWithRetry(`${API_BASE}/events/my-reports`, { headers: getHeaders() });
     if (!res.ok) throw new Error('Failed to fetch citizen report history');
     return res.json();
   },
@@ -127,7 +151,7 @@ export const api = {
     status: EventStatus,
     reviewNotes?: string
   ): Promise<{ success: boolean; event: RoadEvent }> {
-    const res = await fetch(`${API_BASE}/events/${eventId}/status`, {
+    const res = await fetchWithRetry(`${API_BASE}/events/${eventId}/status`, {
       method: 'PATCH',
       headers: getHeaders(),
       body: JSON.stringify({ status, reviewNotes }),
@@ -140,7 +164,7 @@ export const api = {
   },
 
   async deleteEvent(eventId: string): Promise<{ success: boolean; message: string }> {
-    const res = await fetch(`${API_BASE}/events/${eventId}`, {
+    const res = await fetchWithRetry(`${API_BASE}/events/${eventId}`, {
       method: 'DELETE',
       headers: getHeaders(),
     });
@@ -153,7 +177,7 @@ export const api = {
 
   async purgeEvents(districtId?: string): Promise<{ success: boolean; message: string; deletedCount: number }> {
     const query = districtId ? `?districtId=${encodeURIComponent(districtId)}` : '';
-    const res = await fetch(`${API_BASE}/events/purge${query}`, {
+    const res = await fetchWithRetry(`${API_BASE}/events/purge${query}`, {
       method: 'DELETE',
       headers: getHeaders(),
     });
@@ -166,7 +190,7 @@ export const api = {
 
   async getEventStats(districtId?: string): Promise<AnalyticsStats> {
     const query = districtId ? `?districtId=${encodeURIComponent(districtId)}` : '';
-    const res = await fetch(`${API_BASE}/events/stats${query}`, { headers: getHeaders() });
+    const res = await fetchWithRetry(`${API_BASE}/events/stats${query}`, { headers: getHeaders() });
     if (!res.ok) throw new Error('Failed to load analytics statistics');
     return res.json();
   },
@@ -178,7 +202,7 @@ export const api = {
     routeTag?: string;
     targetDistrictId?: string;
   }): Promise<{ success: boolean; message: string; session: BusSession }> {
-    const res = await fetch(`${API_BASE}/pairing/confirm`, {
+    const res = await fetchWithRetry(`${API_BASE}/pairing/confirm`, {
       method: 'POST',
       headers: getHeaders(),
       body: JSON.stringify(data),
@@ -192,13 +216,13 @@ export const api = {
 
   async getBusSessions(districtId?: string): Promise<BusSession[]> {
     const query = districtId ? `?districtId=${encodeURIComponent(districtId)}` : '';
-    const res = await fetch(`${API_BASE}/pairing/sessions${query}`, { headers: getHeaders() });
+    const res = await fetchWithRetry(`${API_BASE}/pairing/sessions${query}`, { headers: getHeaders() });
     if (!res.ok) throw new Error('Failed to fetch bus sessions');
     return res.json();
   },
 
   async unpairBusSession(sessionId: string): Promise<{ success: boolean; message: string }> {
-    const res = await fetch(`${API_BASE}/pairing/sessions/${sessionId}`, {
+    const res = await fetchWithRetry(`${API_BASE}/pairing/sessions/${sessionId}`, {
       method: 'DELETE',
       headers: getHeaders(),
     });
@@ -221,13 +245,13 @@ export const api = {
       const qStr = q.toString();
       if (qStr) fullUrl += `?${qStr}`;
     }
-    const res = await fetch(fullUrl, { headers: getHeaders() });
+    const res = await fetchWithRetry(fullUrl, { headers: getHeaders() });
     if (!res.ok) throw new Error(`GET ${url} failed`);
     return { data: await res.json() };
   },
 
   async post(url: string, body?: any) {
-    const res = await fetch(`${API_BASE}${url}`, {
+    const res = await fetchWithRetry(`${API_BASE}${url}`, {
       method: 'POST',
       headers: getHeaders(),
       body: body ? JSON.stringify(body) : undefined,
@@ -237,7 +261,7 @@ export const api = {
   },
 
   async patch(url: string, body?: any) {
-    const res = await fetch(`${API_BASE}${url}`, {
+    const res = await fetchWithRetry(`${API_BASE}${url}`, {
       method: 'PATCH',
       headers: getHeaders(),
       body: body ? JSON.stringify(body) : undefined,
@@ -247,7 +271,7 @@ export const api = {
   },
 
   async del(url: string) {
-    const res = await fetch(`${API_BASE}${url}`, {
+    const res = await fetchWithRetry(`${API_BASE}${url}`, {
       method: 'DELETE',
       headers: getHeaders(),
     });
