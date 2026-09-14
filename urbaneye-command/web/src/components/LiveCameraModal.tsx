@@ -27,6 +27,7 @@ interface LiveCameraModalProps {
   isOpen: boolean;
   onClose: () => void;
   onEventIngested?: () => void;
+  activeDistrictId?: string;
 }
 
 interface CapturedItem {
@@ -75,6 +76,7 @@ export const LiveCameraModal: React.FC<LiveCameraModalProps> = ({
   isOpen,
   onClose,
   onEventIngested,
+  activeDistrictId,
 }) => {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -504,6 +506,7 @@ export const LiveCameraModal: React.FC<LiveCameraModalProps> = ({
 
       const payload = {
         deviceSessionId: 'sess-bus-live-phone',
+        districtId: activeDistrictId || 'dist-kapurthala',
         type: typeToIngest,
         confidence: confToIngest,
         latitude: lat,

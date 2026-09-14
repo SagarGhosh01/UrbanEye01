@@ -6,7 +6,112 @@ import { IN_MEMORY_SESSIONS } from '../pairing/pairing.router.js';
 
 export const eventsRouter = Router();
 
-export const IN_MEMORY_EVENTS: any[] = [];
+export const IN_MEMORY_EVENTS: any[] = [
+  {
+    id: 'evt-edge-101',
+    deviceSessionId: 'sess-bus-live-phone',
+    busLabel: 'Edge Phone Sensor (Live)',
+    districtId: 'dist-kapurthala',
+    type: 'POTHOLE',
+    confidence: 0.94,
+    latitude: 31.2536,
+    longitude: 75.7037,
+    heading: 184,
+    speed: 38,
+    imageSnippet: null,
+    estimatedDiameterCm: 58,
+    widthM: 0.58,
+    lengthM: 0.82,
+    depthCm: 6.4,
+    areaM2: 0.48,
+    severity: 'HIGH',
+    severityScore: 78,
+    deteriorationPct: null,
+    hazardSubCategory: 'pothole',
+    estimatedRepairCost: 3850,
+    status: 'NEW',
+    timestamp: new Date(Date.now() - 15 * 60 * 1000).toISOString(),
+    district: { name: 'Kapurthala', code: 'KAPURTHALA' },
+  },
+  {
+    id: 'evt-edge-102',
+    deviceSessionId: 'sess-bus-live-phone',
+    busLabel: 'Bus Fleet #24',
+    districtId: 'dist-kapurthala',
+    type: 'POTHOLE',
+    confidence: 0.88,
+    latitude: 31.2592,
+    longitude: 75.7115,
+    heading: 190,
+    speed: 42,
+    imageSnippet: null,
+    estimatedDiameterCm: 45,
+    widthM: 0.45,
+    lengthM: 0.65,
+    depthCm: 4.8,
+    areaM2: 0.29,
+    severity: 'MEDIUM',
+    severityScore: 62,
+    deteriorationPct: null,
+    hazardSubCategory: 'pothole',
+    estimatedRepairCost: 2600,
+    status: 'NEW',
+    timestamp: new Date(Date.now() - 45 * 60 * 1000).toISOString(),
+    district: { name: 'Kapurthala', code: 'KAPURTHALA' },
+  },
+  {
+    id: 'evt-edge-103',
+    deviceSessionId: 'sess-bus-live-phone',
+    busLabel: 'Bus Fleet #24',
+    districtId: 'dist-kapurthala',
+    type: 'LONGITUDINAL_CRACK',
+    confidence: 0.91,
+    latitude: 31.2480,
+    longitude: 75.6980,
+    heading: 175,
+    speed: 35,
+    imageSnippet: null,
+    estimatedDiameterCm: 25,
+    widthM: 0.25,
+    lengthM: 3.20,
+    depthCm: 2.1,
+    areaM2: 0.80,
+    severity: 'MEDIUM',
+    severityScore: 58,
+    deteriorationPct: 45,
+    hazardSubCategory: 'longitudinal_crack',
+    estimatedRepairCost: 3100,
+    status: 'REVIEWED',
+    timestamp: new Date(Date.now() - 2 * 3600 * 1000).toISOString(),
+    district: { name: 'Kapurthala', code: 'KAPURTHALA' },
+  },
+  {
+    id: 'evt-edge-104',
+    deviceSessionId: 'sess-bus-live-phone',
+    busLabel: 'Edge Phone Sensor (Live)',
+    districtId: 'dist-kapurthala',
+    type: 'POTHOLE',
+    confidence: 0.96,
+    latitude: 31.2610,
+    longitude: 75.7210,
+    heading: 182,
+    speed: 40,
+    imageSnippet: null,
+    estimatedDiameterCm: 72,
+    widthM: 0.72,
+    lengthM: 1.10,
+    depthCm: 7.8,
+    areaM2: 0.79,
+    severity: 'CRITICAL',
+    severityScore: 88,
+    deteriorationPct: null,
+    hazardSubCategory: 'pothole',
+    estimatedRepairCost: 5200,
+    status: 'ASSIGNED_FOR_REPAIR',
+    timestamp: new Date(Date.now() - 4 * 3600 * 1000).toISOString(),
+    district: { name: 'Kapurthala', code: 'KAPURTHALA' },
+  },
+];
 
 export interface AdvancedDefectMetrics {
   diameterCm: number | null;
@@ -265,7 +370,8 @@ export async function handleIngestEvent(req: Request, res: Response): Promise<vo
 
     const numLat = Number(rawLat);
     const numLon = Number(rawLon);
-    let resolvedDistrictId = session.districtId || 'dist-kapurthala';
+    const rawDistrictId = body.districtId || body.district_id || body.district;
+    let resolvedDistrictId = rawDistrictId || session.districtId || 'dist-kapurthala';
 
     const defectMetrics = calculateDefectMetrics(
       rawType,
@@ -445,12 +551,13 @@ eventsRouter.get(
   enforceDistrictScope,
   async (req: AuthenticatedRequest, res: Response): Promise<void> => {
     try {
-      const { type, status, limit = '50', offset = '0', busLabel } = req.query;
+      const { type, status, limit = '50', offset = '0', busLabel, districtId } = req.query;
+      const targetDistrictId = (req.scopedDistrictId || districtId) as string | undefined;
 
       const whereClause: any = {};
-      if (req.scopedDistrictId) {
-        whereClause.districtId = req.scopedDistrictId;
-      } else if (req.user!.role === 'STATE_ADMIN') {
+      if (targetDistrictId && targetDistrictId !== 'ALL') {
+        whereClause.districtId = targetDistrictId;
+      } else if (req.user?.role === 'STATE_ADMIN') {
         whereClause.district = { stateId: req.user!.stateId };
       }
 
@@ -480,7 +587,7 @@ eventsRouter.get(
 
       // Filter in-memory events
       let filteredMem = IN_MEMORY_EVENTS.filter((e) => {
-        if (req.scopedDistrictId && e.districtId !== req.scopedDistrictId && e.districtId !== 'dist-kapurthala') return false;
+        if (targetDistrictId && targetDistrictId !== 'ALL' && e.districtId !== targetDistrictId && e.districtId !== 'dist-kapurthala') return false;
         if (type && e.type !== (type as string).toUpperCase()) return false;
         if (status && e.status !== (status as string).toUpperCase()) return false;
         if (busLabel && !e.busLabel?.toLowerCase().includes((busLabel as string).toLowerCase())) return false;

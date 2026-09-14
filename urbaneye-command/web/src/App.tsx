@@ -687,6 +687,7 @@ const defaultStats: AnalyticsStats = {
         onEventIngested={() => {
           if (activeDistrict) refreshDistrictData();
         }}
+        activeDistrictId={activeDistrict?.id}
       />
     </div>
   );
