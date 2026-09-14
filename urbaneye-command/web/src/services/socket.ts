@@ -4,9 +4,21 @@ import { RoadEvent } from '../types';
 let socket: Socket | null = null;
 let activeSubscribedDistrict: string | null = null;
 
+const getSocketTarget = (): string => {
+  try {
+    const envUrl = (((import.meta as any).env?.VITE_API_URL) as string) || '';
+    if (envUrl) {
+      return envUrl.replace(/\/api\/?$/, '');
+    }
+  } catch {
+    // fallback
+  }
+  return '/';
+};
+
 export function getSocket(): Socket {
   if (!socket) {
-    socket = io('/', {
+    socket = io(getSocketTarget(), {
       transports: ['websocket', 'polling'],
       reconnection: true,
       reconnectionAttempts: Infinity,

@@ -1,6 +1,18 @@
 import { User, State, District, RoadEvent, BusSession, AnalyticsStats, EventStatus, NationalSummaryResponse, StateSummaryResponse } from '../types';
 
-const API_BASE = '/api';
+const getApiBase = (): string => {
+  try {
+    const envUrl = (((import.meta as any).env?.VITE_API_URL) as string) || '';
+    if (envUrl) {
+      return envUrl.endsWith('/api') ? envUrl : `${envUrl.replace(/\/$/, '')}/api`;
+    }
+  } catch {
+    // fallback to relative endpoint
+  }
+  return '/api';
+};
+
+const API_BASE = getApiBase();
 
 function getHeaders(): HeadersInit {
   const token = localStorage.getItem('urbaneye_token');
