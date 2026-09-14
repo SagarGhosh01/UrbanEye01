@@ -1,0 +1,11 @@
+names:
+- pothole
+nc: 1
+path: E:\UrbanEye\ml_dataset_unified
+roboflow:
+  project: pothole-edge-v2
+  version: 2
+  workspace: urbaneye-ai
+test: images/test
+train: images/train
+val: images/val
