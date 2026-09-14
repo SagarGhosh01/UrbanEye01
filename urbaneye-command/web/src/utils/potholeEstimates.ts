@@ -97,19 +97,22 @@ export function getPotholeCostDetails(event: RoadEvent): PotholeCostDetails {
     recommendedWork = 'Manual asphalt cold-mix compaction & edge tack';
   }
 
-  const formattedCost = new Intl.NumberFormat('en-IN', {
-    style: 'currency',
-    currency: 'INR',
-    maximumFractionDigits: 0,
-  }).format(cost);
+  const isCostUncomputable = event.estimatedRepairCost === null;
+  const formattedCost = isCostUncomputable
+    ? 'N/A'
+    : new Intl.NumberFormat('en-IN', {
+        style: 'currency',
+        currency: 'INR',
+        maximumFractionDigits: 0,
+      }).format(cost);
 
   return {
     diameterCm: diameter,
     widthM,
     lengthM,
-    depthCm,
+    depthCm: event.depthCm ?? depthCm,
     areaM2,
-    cost,
+    cost: isCostUncomputable ? 0 : cost,
     formattedCost,
     severity,
     severityColor,

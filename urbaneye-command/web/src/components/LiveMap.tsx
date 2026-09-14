@@ -247,6 +247,12 @@ export const LiveMap: React.FC<LiveMapProps> = ({
           </div>
 
           ${
+            event.source === 'Citizen Report'
+              ? `<div style="margin-bottom: 6px;"><span style="font-size: 9px; font-weight: 800; background-color: #ccfbf1; color: #0f766e; border: 1px solid #99f6e4; padding: 2px 6px; border-radius: 4px; text-transform: uppercase;">Citizen Report</span></div>`
+              : ''
+          }
+
+          ${
             event.imageSnippet
               ? `<div style="margin-bottom: 8px; border-radius: 4px; overflow: hidden; border: 1px solid #e2e8f0; max-height: 100px;">
                   <img src="${resolveImageSrc(event.imageSnippet)}" alt="Camera snippet" style="width: 100%; height: 95px; object-fit: cover; display: block;" />

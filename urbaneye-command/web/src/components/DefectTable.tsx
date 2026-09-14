@@ -491,10 +491,17 @@ export const DefectTable: React.FC<DefectTableProps> = ({
                     })()}
                   </td>
 
-                  {/* Bus Unit */}
+                  {/* Bus Unit / Source */}
                   <td className="py-2 px-3">
                     <div className={`font-medium ${cellMain}`}>{event.busLabel}</div>
-                    <div className={`text-[10px] ${cellSub}`}>{event.district?.name}</div>
+                    <div className="flex items-center space-x-1 mt-0.5">
+                      <span className={`text-[10px] ${cellSub}`}>{event.district?.name}</span>
+                      {event.source === 'Citizen Report' && (
+                        <span className="text-[9px] font-extrabold px-1.5 py-0.2 rounded bg-teal-500/20 text-teal-300 border border-teal-500/40 uppercase">
+                          Citizen Report
+                        </span>
+                      )}
+                    </div>
                   </td>
 
                   {/* Coordinates */}

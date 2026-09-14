@@ -84,6 +84,32 @@ export const api = {
     return res.json();
   },
 
+  async submitCitizenReport(data: {
+    imageSnippet: string;
+    latitude: number;
+    longitude: number;
+    districtId?: string;
+    manualLocationName?: string;
+    type?: string;
+  }): Promise<{ success: boolean; noDefect?: boolean; message?: string; event?: RoadEvent }> {
+    const res = await fetch(`${API_BASE}/events/citizen-report`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: 'Submission failed' }));
+      throw new Error(err.error || 'Failed to submit citizen defect report');
+    }
+    return res.json();
+  },
+
+  async getMyCitizenReports(): Promise<{ success: boolean; count: number; reports: RoadEvent[] }> {
+    const res = await fetch(`${API_BASE}/events/my-reports`, { headers: getHeaders() });
+    if (!res.ok) throw new Error('Failed to fetch citizen report history');
+    return res.json();
+  },
+
   async updateEventStatus(
     eventId: string,
     status: EventStatus,

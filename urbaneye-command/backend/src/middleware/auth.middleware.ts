@@ -25,7 +25,7 @@ export function requireAuth(req: AuthenticatedRequest, res: Response, next: Next
   }
 }
 
-export function requireRole(...allowedRoles: Array<'NATIONAL_ADMIN' | 'STATE_ADMIN' | 'DISTRICT_HEAD'>) {
+export function requireRole(...allowedRoles: Array<'NATIONAL_ADMIN' | 'STATE_ADMIN' | 'DISTRICT_HEAD' | 'CITIZEN_REPORTER'>) {
   return (req: AuthenticatedRequest, res: Response, next: NextFunction): void => {
     if (!req.user) {
       res.status(401).json({ error: 'Unauthorized. User session missing.' });

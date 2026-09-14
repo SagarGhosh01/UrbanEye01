@@ -95,7 +95,10 @@ model RoadEvent {
   status              String            @default("NEW") // NEW | REVIEWED | ASSIGNED_FOR_REPAIR | RESOLVED
   reviewedByUserId    String?
   reviewedByUser      User?             @relation("UserReviewedEvents", fields: [reviewedByUserId], references: [id])
-  reviewNotes         String?
+  source              String            @default("Transit Bus Fleet") // Transit Bus Fleet | Citizen Report
+  reporterUserId      String?
+  reporterName        String?
+  reporterEmail       String?
   timestamp           DateTime          @default(now())
   createdAt           DateTime          @default(now())
 

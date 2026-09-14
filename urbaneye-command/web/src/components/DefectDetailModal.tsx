@@ -177,11 +177,21 @@ export const DefectDetailModal: React.FC<DefectDetailModalProps> = ({
           {/* Telemetry & Metadata Grid */}
           <div className="grid grid-cols-2 gap-2.5 sm:gap-3 text-xs">
             <div className="bg-slate-50 p-3 rounded-xl border border-slate-200">
-              <span className="text-slate-500 font-medium flex items-center space-x-1.5 mb-1">
-                <Bus className="w-3.5 h-3.5 text-blue-600" />
-                <span>Reporting Bus</span>
+              <span className="text-slate-500 font-medium flex items-center justify-between mb-1">
+                <span className="flex items-center space-x-1.5">
+                  <Bus className="w-3.5 h-3.5 text-blue-600" />
+                  <span>Source Channel</span>
+                </span>
+                {event.source === 'Citizen Report' && (
+                  <span className="text-[9px] font-extrabold px-1.5 py-0.2 rounded bg-teal-100 text-teal-800 border border-teal-200 uppercase">
+                    Citizen Report
+                  </span>
+                )}
               </span>
               <span className="font-bold text-slate-900 text-sm">{event.busLabel}</span>
+              {event.reporterName && (
+                <span className="block text-[10px] text-slate-500 mt-0.5">By: {event.reporterName}</span>
+              )}
             </div>
 
             <div className="bg-slate-50 p-3 rounded-xl border border-slate-200">

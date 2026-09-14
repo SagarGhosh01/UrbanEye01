@@ -123,6 +123,11 @@ export interface RoadEvent {
     role: string;
   } | null;
   reviewNotes?: string | null;
+  source?: string;
+  timesSeen?: number;
+  reporterUserId?: string | null;
+  reporterName?: string | null;
+  reporterEmail?: string | null;
   timestamp: string;
   createdAt: string;
 }

@@ -15,6 +15,7 @@ import { TrafficIntelligenceView } from './components/TrafficIntelligenceView';
 import { IncidentResponseView } from './components/IncidentResponseView';
 import { SafetyIntelligenceView } from './components/SafetyIntelligenceView';
 import { PredictiveIntelligenceView } from './components/PredictiveIntelligenceView';
+import { CitizenReportView } from './components/CitizenReportView';
 import { Login } from './pages/Login';
 import { LandingPage } from './pages/LandingPage';
 import { ThemeProvider, useTheme } from './contexts/ThemeContext';
@@ -428,8 +429,20 @@ const defaultStats: AnalyticsStats = {
 
       {/* Main Container */}
       <main className="flex-1 max-w-7xl w-full max-w-full mx-auto px-2.5 sm:px-6 lg:px-8 py-3.5 sm:py-5 overflow-x-hidden">
-        {/* VIEW 1: National Admin View */}
-        {viewMode === 'NATIONAL' && (
+        {/* VIEW 0: Citizen Reporter Workspace */}
+        {user.role === 'CITIZEN_REPORTER' ? (
+          <CitizenReportView
+            user={user}
+            onReportSubmitted={(newEvent) => {
+              setEvents((prev) => [newEvent, ...prev.filter((e) => e.id !== newEvent.id)]);
+              setLatestLiveAlert(newEvent);
+              if (activeDistrict) refreshDistrictData();
+            }}
+          />
+        ) : (
+          <>
+            {/* VIEW 1: National Admin View */}
+            {viewMode === 'NATIONAL' && (
           <NationalOverviewView
             onSelectState={async (st) => {
               setSelectedState(st);
@@ -670,6 +683,8 @@ const defaultStats: AnalyticsStats = {
               </>
             )}
           </div>
+        )}
+        </>
         )}
       </main>
 
