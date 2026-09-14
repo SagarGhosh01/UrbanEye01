@@ -46,48 +46,53 @@ def create_data_yaml(output_dir: Path):
 
 def process_source_dataset(src_dir: Path, output_dir: Path, class_mapping: dict = None):
     """
-    Copies images and updates labels to single-class 'pothole' (0).
+    Copies images and updates labels to single-class 'pothole' (0) for train, val, and test splits.
     """
-    src_images = list((src_dir / "train" / "images").glob("*.[jJ][pP][gG]")) + \
-                 list((src_dir / "train" / "images").glob("*.[pP][nN][gG]"))
-    
-    print(f"[+] Processing source dataset: {src_dir} ({len(src_images)} images found)...")
-    
-    processed_count = 0
-    for img_path in src_images:
-        label_path = src_dir / "train" / "labels" / f"{img_path.stem}.txt"
-        
-        # Target paths in dataset
-        dest_img = output_dir / "images" / "train" / img_path.name
-        dest_label = output_dir / "labels" / "train" / f"{img_path.stem}.txt"
-        
-        shutil.copy2(img_path, dest_img)
-        
-        if label_path.exists():
-            with open(label_path, 'r') as lf:
-                lines = lf.readlines()
-            
-            new_lines = []
-            for line in lines:
-                parts = line.strip().split()
-                if not parts:
-                    continue
-                cls_id = parts[0]
-                # Filter/remap class if mapping specified (e.g. D43 -> 0)
-                if class_mapping is None or cls_id in class_mapping:
-                    # Set class index to 0 (pothole)
-                    parts[0] = '0'
-                    new_lines.append(" ".join(parts) + "\n")
-            
-            with open(dest_label, 'w') as dlf:
-                dlf.writelines(new_lines)
-        else:
-            # Empty label file for hard negative
-            open(dest_label, 'w').close()
-            
-        processed_count += 1
+    splits = [
+        ('train', 'train'),
+        ('valid', 'val'),
+        ('test', 'test'),
+    ]
 
-    print(f"[+] Processed {processed_count} images into unified dataset.")
+    total_processed = 0
+    for src_split, target_split in splits:
+        split_img_dir = src_dir / src_split / "images"
+        split_lbl_dir = src_dir / src_split / "labels"
+        if not split_img_dir.exists():
+            continue
+
+        src_images = list(split_img_dir.glob("*.[jJ][pP][gG]")) + list(split_img_dir.glob("*.[pP][nN][gG]"))
+        print(f"[+] Processing {src_split} split: {len(src_images)} images...")
+
+        for img_path in src_images:
+            label_path = split_lbl_dir / f"{img_path.stem}.txt"
+            dest_img = output_dir / "images" / target_split / img_path.name
+            dest_label = output_dir / "labels" / target_split / f"{img_path.stem}.txt"
+
+            shutil.copy2(img_path, dest_img)
+
+            if label_path.exists():
+                with open(label_path, 'r') as lf:
+                    lines = lf.readlines()
+
+                new_lines = []
+                for line in lines:
+                    parts = line.strip().split()
+                    if not parts:
+                        continue
+                    cls_id = parts[0]
+                    if class_mapping is None or cls_id in class_mapping:
+                        parts[0] = '0'
+                        new_lines.append(" ".join(parts) + "\n")
+
+                with open(dest_label, 'w') as dlf:
+                    dlf.writelines(new_lines)
+            else:
+                open(dest_label, 'w').close()
+
+            total_processed += 1
+
+    print(f"[+] Processed {total_processed} total images across train/val/test splits.")
 
 def add_hard_negatives(negatives_dir: Path, output_dir: Path):
     """

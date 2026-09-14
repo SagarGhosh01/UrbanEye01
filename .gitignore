@@ -16,6 +16,7 @@ urbaneye-command/web/dist/
 
 # Heavy Machine Learning Datasets & Weights
 Road Defect.v1i.yolov8/
+ml_dataset_unified/
 runs/
 *.pt
 yolov8n.pt
