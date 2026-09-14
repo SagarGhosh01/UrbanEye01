@@ -311,7 +311,13 @@ pairingRouter.get(
         }
       }
 
-      res.json(dbSessions);
+      const busOnlySessions = dbSessions.filter((s) => {
+        const idStr = String(s.id || '').toLowerCase();
+        const labelStr = String(s.busLabel || '').toLowerCase();
+        return !idStr.includes('citizen') && !idStr.includes('sess-bus-live-phone') && !labelStr.includes('citizen') && !labelStr.includes('edge phone');
+      });
+
+      res.json(busOnlySessions);
     } catch (err: any) {
       console.error('List sessions error:', err);
       res.status(500).json({ error: 'Failed to retrieve active bus sessions.' });

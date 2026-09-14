@@ -996,12 +996,22 @@ eventsRouter.get(
       const totalRepairCost = combinedEvents.reduce((acc, e) => acc + (Number(e.estimatedRepairCost) || 0), 0);
 
       const memBuses = Array.from(IN_MEMORY_SESSIONS.values())
-        .filter((s) => s.status === 'PAIRED')
+        .filter((s) => {
+          if (s.status !== 'PAIRED') return false;
+          const idStr = String(s.id || '').toLowerCase();
+          const labelStr = String(s.busLabel || '').toLowerCase();
+          return !idStr.includes('citizen') && !idStr.includes('sess-bus-live-phone') && !labelStr.includes('citizen') && !labelStr.includes('edge phone');
+        })
         .map((s) => s.busLabel?.trim())
         .filter(Boolean);
 
+      const filteredActiveBusSessions = activeBusSessions.filter((s) => {
+        const labelStr = String(s.busLabel || '').toLowerCase();
+        return !labelStr.includes('citizen') && !labelStr.includes('edge phone') && !labelStr.includes('live phone');
+      });
+
       const activeBusesCount = new Set([
-        ...activeBusSessions.map((s) => s.busLabel?.trim()).filter(Boolean),
+        ...filteredActiveBusSessions.map((s) => s.busLabel?.trim()).filter(Boolean),
         ...memBuses,
       ]).size;
 

@@ -235,7 +235,13 @@ geographyRouter.get('/national/summary', requireAuth, async (req: AuthenticatedR
         ]);
 
         const activeBusesCount = new Set(
-          activeBusSessions.map((s) => s.busLabel?.trim()).filter(Boolean)
+          activeBusSessions
+            .filter((s) => {
+              const labelStr = String(s.busLabel || '').toLowerCase();
+              return !labelStr.includes('citizen') && !labelStr.includes('edge phone') && !labelStr.includes('live phone');
+            })
+            .map((s) => s.busLabel?.trim())
+            .filter(Boolean)
         ).size;
 
         const unresolved = totalDefects - resolvedDefects;
@@ -353,7 +359,13 @@ geographyRouter.get('/states/:stateId/summary', requireAuth, async (req: Authent
         ]);
 
         const activeBusesCount = new Set(
-          activeBusSessions.map((s) => s.busLabel?.trim()).filter(Boolean)
+          activeBusSessions
+            .filter((s) => {
+              const labelStr = String(s.busLabel || '').toLowerCase();
+              return !labelStr.includes('citizen') && !labelStr.includes('edge phone') && !labelStr.includes('live phone');
+            })
+            .map((s) => s.busLabel?.trim())
+            .filter(Boolean)
         ).size;
 
         const unresolved = totalDefects - resolvedDefects;

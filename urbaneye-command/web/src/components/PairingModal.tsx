@@ -36,7 +36,12 @@ export const PairingModal: React.FC<PairingModalProps> = ({
     try {
       setLoadingSessions(true);
       const data = await api.getBusSessions(currentDistrict?.id);
-      setSessions(data);
+      const busOnly = (data || []).filter((s: BusSession) => {
+        const idStr = String(s.id || '').toLowerCase();
+        const labelStr = String(s.busLabel || '').toLowerCase();
+        return !idStr.includes('citizen') && !idStr.includes('sess-bus-live-phone') && !labelStr.includes('citizen') && !labelStr.includes('edge phone');
+      });
+      setSessions(busOnly);
     } catch (err) {
       console.error('Failed to load bus sessions', err);
     } finally {
