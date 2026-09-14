@@ -50,27 +50,27 @@ export function calculateDefectMetrics(
     if (!providedWidthM) widthM = Math.round((0.55 + seed * 0.77) * 100) / 100; // e.g., 0.82 m
     if (!providedLengthM) lengthM = Math.round((0.85 + seed2 * 0.85) * 100) / 100; // e.g., 1.34 m
     if (!providedDepthCm) depthCm = Math.round((4.0 + seed * 5.8) * 10) / 10; // e.g., 6.8 cm
-    areaM2 = Math.round((widthM * lengthM * 0.82) * 100) / 100; // e.g., 1.09 m²
-    diameterCm = Math.round(widthM * 100);
+    if (!providedAreaM2) areaM2 = Math.round((widthM * lengthM * 0.82) * 100) / 100; // e.g., 1.09 m²
+    if (!providedDiameter) diameterCm = Math.round(widthM * 100);
   } else if (upperType.includes('CRACK') || upperType === 'LONGITUDINAL_CRACK' || upperType === 'ALLIGATOR_CRACK') {
     hazardSubCategory = upperType.includes('ALLIGATOR') ? 'alligator_crack' : 'longitudinal_crack';
-    widthM = Math.round((0.15 + seed * 0.25) * 100) / 100;
-    lengthM = Math.round((2.5 + seed2 * 5.5) * 100) / 100;
-    depthCm = Math.round((1.5 + seed * 2.5) * 10) / 10;
-    areaM2 = Math.round((widthM * lengthM) * 100) / 100;
+    if (!providedWidthM) widthM = Math.round((0.15 + seed * 0.25) * 100) / 100;
+    if (!providedLengthM) lengthM = Math.round((2.5 + seed2 * 5.5) * 100) / 100;
+    if (!providedDepthCm) depthCm = Math.round((1.5 + seed * 2.5) * 10) / 10;
+    if (!providedAreaM2) areaM2 = Math.round((widthM * lengthM) * 100) / 100;
     deteriorationPct = Math.round(40 + seed * 45);
   } else if (upperType === 'SURFACE_DAMAGE' || upperType === 'ROAD_EDGE_DAMAGE' || upperType === 'RUTTING') {
     hazardSubCategory = upperType === 'ROAD_EDGE_DAMAGE' ? 'road_edge_damage' : 'rutting';
-    widthM = Math.round((1.2 + seed * 1.8) * 100) / 100;
-    lengthM = Math.round((3.0 + seed2 * 6.0) * 100) / 100;
-    depthCm = Math.round((2.0 + seed * 4.0) * 10) / 10;
-    areaM2 = Math.round((widthM * lengthM) * 100) / 100;
+    if (!providedWidthM) widthM = Math.round((1.2 + seed * 1.8) * 100) / 100;
+    if (!providedLengthM) lengthM = Math.round((3.0 + seed2 * 6.0) * 100) / 100;
+    if (!providedDepthCm) depthCm = Math.round((2.0 + seed * 4.0) * 10) / 10;
+    if (!providedAreaM2) areaM2 = Math.round((widthM * lengthM) * 100) / 100;
   } else if (upperType === 'WATERLOGGING') {
     hazardSubCategory = 'waterlogging';
-    widthM = Math.round((2.5 + seed * 3.5) * 100) / 100;
-    lengthM = Math.round((4.0 + seed2 * 5.0) * 100) / 100;
-    depthCm = Math.round((4.0 + seed * 12.0) * 10) / 10;
-    areaM2 = Math.round((widthM * lengthM) * 100) / 100;
+    if (!providedWidthM) widthM = Math.round((2.5 + seed * 3.5) * 100) / 100;
+    if (!providedLengthM) lengthM = Math.round((4.0 + seed2 * 5.0) * 100) / 100;
+    if (!providedDepthCm) depthCm = Math.round((4.0 + seed * 12.0) * 10) / 10;
+    if (!providedAreaM2) areaM2 = Math.round((widthM * lengthM) * 100) / 100;
     deteriorationPct = Math.round(25 + seed * 50);
   } else if (upperType === 'MISSING_DIVIDER') {
     hazardSubCategory = 'missing_divider';
