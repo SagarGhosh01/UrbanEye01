@@ -18,7 +18,7 @@ import { PredictiveIntelligenceView } from './components/PredictiveIntelligenceV
 import { Login } from './pages/Login';
 import { LandingPage } from './pages/LandingPage';
 import { ThemeProvider, useTheme } from './contexts/ThemeContext';
-import { RefreshCw, Radio, BellRing, Sparkles, ArrowLeft, ShieldAlert, Activity } from 'lucide-react';
+import { RefreshCw, Radio, BellRing, Sparkles, ArrowLeft, ShieldAlert, Activity, Camera, Bus } from 'lucide-react';
 
 export const App: React.FC = () => {
   return (
@@ -478,6 +478,23 @@ const defaultStats: AnalyticsStats = {
 
               <div className="flex items-center space-x-2">
                 <button
+                  onClick={() => setIsLiveCameraOpen(true)}
+                  className="min-h-[40px] px-3.5 py-2 text-xs font-bold rounded-lg bg-teal-600 hover:bg-teal-700 text-white transition flex items-center space-x-1.5 shadow-md active:scale-95 shrink-0"
+                  title="Open Live Edge Camera Vision or Upload Damage Photo"
+                >
+                  <Camera className="w-4 h-4 text-amber-300 animate-pulse" />
+                  <span>Edge Camera / Upload Photo</span>
+                </button>
+
+                <button
+                  onClick={() => setIsPairingModalOpen(true)}
+                  className="min-h-[40px] px-3.5 py-2 text-xs font-bold rounded-lg bg-[#1E7F73] hover:bg-[#186a60] text-white transition flex items-center space-x-1.5 shadow-sm active:scale-95 shrink-0"
+                >
+                  <Bus className="w-3.5 h-3.5" />
+                  <span>Pair Bus (PIN)</span>
+                </button>
+
+                <button
                   onClick={refreshDistrictData}
                   disabled={loadingData}
                   className={`min-h-[40px] px-3.5 py-2 text-xs font-semibold rounded-lg border transition flex items-center space-x-1.5 shadow-sm active:scale-95 ${isDark ? 'border-slate-600 bg-slate-800 hover:bg-slate-700 text-slate-200' : 'border-slate-300 bg-white hover:bg-slate-50 text-slate-700'}`}
@@ -684,7 +701,10 @@ const defaultStats: AnalyticsStats = {
             handleLogout();
           }
         }}
-        onEventIngested={() => {
+        onEventIngested={(newEvent?: any) => {
+          if (newEvent) {
+            setEvents((prev) => [newEvent, ...prev.filter((e) => e.id !== newEvent.id)]);
+          }
           if (activeDistrict) refreshDistrictData();
         }}
         activeDistrictId={activeDistrict?.id}

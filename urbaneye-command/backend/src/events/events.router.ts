@@ -6,7 +6,60 @@ import { IN_MEMORY_SESSIONS } from '../pairing/pairing.router.js';
 
 export const eventsRouter = Router();
 
-export const IN_MEMORY_EVENTS: any[] = [];
+export const IN_MEMORY_EVENTS: any[] = [
+  {
+    id: 'evt-kapurthala-seed-1',
+    deviceSessionId: 'sess-bus-live-phone',
+    busLabel: 'PB-09-X-9821 (Kapurthala Bus Fleet)',
+    districtId: 'dist-kapurthala',
+    type: 'POTHOLE',
+    confidence: 0.94,
+    latitude: 31.2536,
+    longitude: 75.7037,
+    heading: 184,
+    speed: 38,
+    imageSnippet: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300"><rect width="400" height="300" fill="%231e293b"/><path d="M 50 150 Q 200 80 350 150 Q 200 220 50 150 Z" fill="%230f172a" stroke="%23f97316" stroke-width="4"/><circle cx="200" cy="150" r="45" fill="%23020617"/><text x="200" y="240" font-family="sans-serif" font-size="14" font-weight="bold" fill="%23f97316" text-anchor="middle">EDGE-AI ROAD DEFECT CAPTURE</text></svg>',
+    estimatedDiameterCm: 58,
+    widthM: 0.58,
+    lengthM: 0.82,
+    depthCm: 6.4,
+    areaM2: 0.48,
+    severity: 'HIGH',
+    severityScore: 78,
+    hazardSubCategory: 'pothole',
+    estimatedRepairCost: 3850,
+    status: 'NEW',
+    timestamp: new Date().toISOString(),
+    createdAt: new Date().toISOString(),
+    district: { name: 'Kapurthala', code: 'KAPURTHALA' },
+  },
+  {
+    id: 'evt-kapurthala-seed-2',
+    deviceSessionId: 'sess-bus-live-phone',
+    busLabel: 'PB-09-X-9821 (Kapurthala Bus Fleet)',
+    districtId: 'dist-kapurthala',
+    type: 'ROAD_CRACK',
+    confidence: 0.88,
+    latitude: 31.2580,
+    longitude: 75.7080,
+    heading: 160,
+    speed: 42,
+    imageSnippet: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300"><rect width="400" height="300" fill="%231e293b"/><path d="M 100 50 L 300 250" stroke="%23eab308" stroke-width="6"/><text x="200" y="240" font-family="sans-serif" font-size="14" font-weight="bold" fill="%23eab308" text-anchor="middle">LONGITUDINAL CRACK DETECTED</text></svg>',
+    estimatedDiameterCm: 25,
+    widthM: 0.25,
+    lengthM: 3.5,
+    depthCm: 2.8,
+    areaM2: 0.88,
+    severity: 'MEDIUM',
+    severityScore: 62,
+    hazardSubCategory: 'longitudinal_crack',
+    estimatedRepairCost: 2400,
+    status: 'NEW',
+    timestamp: new Date(Date.now() - 3600000).toISOString(),
+    createdAt: new Date(Date.now() - 3600000).toISOString(),
+    district: { name: 'Kapurthala', code: 'KAPURTHALA' },
+  }
+];
 
 export interface AdvancedDefectMetrics {
   diameterCm: number | null;

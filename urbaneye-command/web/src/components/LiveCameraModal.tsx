@@ -26,7 +26,7 @@ import { deduplicationService } from '../services/deduplicationService';
 interface LiveCameraModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onEventIngested?: () => void;
+  onEventIngested?: (event?: any) => void;
   activeDistrictId?: string;
 }
 
@@ -632,8 +632,33 @@ export const LiveCameraModal: React.FC<LiveCameraModalProps> = ({
         deduplicated: isDup,
       };
 
+      const eventObj: any = {
+        id: eventId,
+        deviceSessionId: 'sess-bus-live-phone',
+        busLabel: 'Edge Phone Sensor (Live)',
+        districtId: activeDistrictId || 'dist-kapurthala',
+        type: typeToIngest,
+        confidence: confToIngest,
+        latitude: lat,
+        longitude: lon,
+        heading: telemetryHeading,
+        speed: currentSpeed,
+        imageSnippet,
+        estimatedDiameterCm: widthCm,
+        widthM: widthCm / 100,
+        lengthM: lengthM,
+        depthCm: depthCm,
+        areaM2: areaM2,
+        severity: depthCm > 7 ? 'CRITICAL' : 'HIGH',
+        severityScore: Math.min(100, Math.round(depthCm * 6 + areaM2 * 25)),
+        estimatedRepairCost: repairCost,
+        status: 'NEW',
+        timestamp: new Date().toISOString(),
+        createdAt: new Date().toISOString(),
+      };
+
       setCaptureHistory((prev) => [historyEntry, ...prev.slice(0, 7)]);
-      if (onEventIngested) onEventIngested();
+      if (onEventIngested) onEventIngested(eventObj);
     } catch (err: any) {
       console.warn('Camera detection transmission notice:', err);
       const readableType = typeToIngest.replace(/_/g, ' ');
