@@ -478,15 +478,6 @@ const defaultStats: AnalyticsStats = {
 
               <div className="flex items-center space-x-2">
                 <button
-                  onClick={() => setIsLiveCameraOpen(true)}
-                  className="min-h-[40px] px-3.5 py-2 text-xs font-bold rounded-lg bg-teal-600 hover:bg-teal-700 text-white transition flex items-center space-x-1.5 shadow-md active:scale-95 shrink-0"
-                  title="Open Live Edge Camera Vision or Upload Damage Photo"
-                >
-                  <Camera className="w-4 h-4 text-amber-300 animate-pulse" />
-                  <span>Edge Camera / Upload Photo</span>
-                </button>
-
-                <button
                   onClick={() => setIsPairingModalOpen(true)}
                   className="min-h-[40px] px-3.5 py-2 text-xs font-bold rounded-lg bg-[#1E7F73] hover:bg-[#186a60] text-white transition flex items-center space-x-1.5 shadow-sm active:scale-95 shrink-0"
                 >

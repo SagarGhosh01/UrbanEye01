@@ -150,8 +150,8 @@ export const Header: React.FC<HeaderProps> = ({
             </span>
           </div>
 
-          {/* Live Edge Camera Sensor Button (Accessible for ALL system roles) */}
-          {onOpenLiveCamera && (
+          {/* Live Edge Camera Sensor Button (Only visible for Citizen Reporters) */}
+          {onOpenLiveCamera && user?.role === 'CITIZEN_REPORTER' && (
             <button
               type="button"
               onClick={onOpenLiveCamera}
