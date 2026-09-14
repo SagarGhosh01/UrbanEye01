@@ -19,7 +19,7 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
 
-    <!-- 3. Top Operator HUD Bar (Mounted Vehicle / Phone Dashboard) -->
+    <!-- 3. Top Operator HUD Bar (Mounted Vehicle / Bus CCTV Dashboard) -->
     <LinearLayout
         android:id="@+id/topHudBar"
         android:layout_width="match_parent"
@@ -32,7 +32,7 @@
         android:paddingBottom="12dp"
         app:layout_constraintTop_toTopOf="parent">
 
-        <!-- Line 1: Agency Brand, Live Dot & Status -->
+        <!-- Line 1: Agency Brand, CCTV Badge & Bus Status -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -42,7 +42,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="URBANEYE AI"
+                android:text="URBANEYE CCTV"
                 android:textColor="@color/white"
                 android:textSize="15sp"
                 android:textStyle="bold" />
@@ -56,7 +56,7 @@
                 android:paddingTop="2dp"
                 android:paddingEnd="6dp"
                 android:paddingBottom="2dp"
-                android:text="EDGE SENSOR"
+                android:text="AUTOMATED SENSOR"
                 android:textColor="@color/gov_amber"
                 android:textSize="10sp"
                 android:textStyle="bold" />
@@ -75,7 +75,7 @@
                 android:paddingTop="2dp"
                 android:paddingEnd="8dp"
                 android:paddingBottom="2dp"
-                android:text="VIEWFINDER EDGE AI"
+                android:text="BUS CCTV LIVE"
                 android:textColor="@color/gov_emerald"
                 android:textSize="11sp"
                 android:textStyle="bold" />
@@ -116,7 +116,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="12dp"
-                android:text="Trip Events: 0"
+                android:text="Auto Transmitted: 0"
                 android:textColor="@color/white"
                 android:textSize="11sp"
                 android:textStyle="bold" />
@@ -128,14 +128,14 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="6dp"
-            android:text="🟢 AI Scanning road surface in real-time..."
+            android:text="🟢 Automated Bus CCTV AI scanning road surface..."
             android:textColor="#64748B"
             android:textSize="11sp"
             android:singleLine="true"
             android:ellipsize="end" />
     </LinearLayout>
 
-    <!-- 4. Floating Quick Action Bar on Viewfinder -->
+    <!-- 4. Floating Quick Action Controls Bar (Automated CCTV Viewfinder) -->
     <LinearLayout
         android:id="@+id/cameraActionRow"
         android:layout_width="wrap_content"
@@ -156,23 +156,12 @@
             android:textSize="11sp" />
 
         <Button
-            android:id="@+id/btnManualSnap"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="6dp"
-            android:backgroundTint="#DC2563EB"
-            android:text="📸 Snap &amp; Send"
-            android:textColor="@color/white"
-            android:textSize="11sp"
-            android:textStyle="bold" />
-
-        <Button
             android:id="@+id/btnTriggerTestDefect"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="6dp"
             android:backgroundTint="#DCDC2626"
-            android:text="⚡ Test Pothole"
+            android:text="⚡ Test Defect"
             android:textColor="@color/white"
             android:textSize="11sp" />
 
@@ -187,7 +176,7 @@
             android:textSize="11sp" />
     </LinearLayout>
 
-    <!-- 5. Live Detection Alert Banner (bottom of screen) -->
+    <!-- 5. Live Automated Detection Alert Banner (bottom of screen) -->
     <LinearLayout
         android:id="@+id/detectionBanner"
         android:layout_width="match_parent"
@@ -207,7 +196,7 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:id="@+id/tvDetectionBannerType"
-            android:text="🚨 POTHOLE DETECTED"
+            android:text="🚨 POTHOLE DETECTED • AUTO UPLOADING"
             android:textColor="@color/black"
             android:textSize="13sp"
             android:textStyle="bold" />
@@ -248,7 +237,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="50dp"
-            android:text="URBANEYE EDGE AI"
+            android:text="URBANEYE BUS CCTV"
             android:textColor="@color/white"
             android:textSize="22sp"
             android:textStyle="bold"
@@ -262,7 +251,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
             android:gravity="center"
-            android:text="Public Bus &amp; Mobile Phone Edge AI Road Intelligence Sensor Platform\nMinistry of Road Transport &amp; Highways"
+            android:text="Automated Public Bus CCTV Edge AI Road Intelligence Sensor Platform\nMinistry of Road Transport &amp; Highways"
             android:textColor="#94A3B8"
             android:textSize="12sp"
             app:layout_constraintEnd_toEndOf="parent"
@@ -289,7 +278,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="DEVICE PAIRING PIN"
+                    android:text="BUS SENSOR PAIRING PIN"
                     android:textColor="@color/gov_amber"
                     android:textSize="13sp"
                     android:textStyle="bold" />
@@ -312,7 +301,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="12dp"
                     android:gravity="center"
-                    android:text="Enter this 6-digit PIN on the UrbanEye Command Web Portal under 'Pair a new bus' to bind your device to your district."
+                    android:text="Enter this 6-digit PIN on the UrbanEye Command Web Portal under 'Pair a new bus' to bind your bus CCTV to your district."
                     android:textColor="#E2E8F0"
                     android:textSize="12sp" />
 
@@ -385,7 +374,7 @@
                 android:singleLine="true"
                 android:paddingStart="2dp"
                 android:paddingEnd="2dp"
-                android:text="View Camera"
+                android:text="View CCTV"
                 android:textColor="@color/white"
                 android:textSize="11.5sp" />
         </LinearLayout>

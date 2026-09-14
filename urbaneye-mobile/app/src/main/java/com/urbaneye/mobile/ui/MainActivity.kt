@@ -5,7 +5,6 @@ import android.content.pm.PackageManager
 import android.graphics.*
 import android.os.Bundle
 import android.os.SystemClock
-import android.util.Base64
 import android.util.Log
 import android.view.View
 import android.widget.Toast
@@ -28,7 +27,6 @@ import com.urbaneye.mobile.pairing.PairingState
 import com.urbaneye.mobile.sync.EventSyncManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import java.io.ByteArrayOutputStream
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
@@ -53,7 +51,7 @@ class MainActivity : AppCompatActivity() {
 
     // Camera & Threading
     private var cameraExecutor: ExecutorService = Executors.newSingleThreadExecutor()
-    private var tripEventsCount = 0
+    private var autoTransmittedCount = 0
     private var lastFpsCalculationTime = 0L
     private var framesProcessedSinceLastCalc = 0
 
@@ -71,7 +69,7 @@ class MainActivity : AppCompatActivity() {
         if (cameraGranted) {
             startCamera()
         } else {
-            Toast.makeText(this, "Camera permission is strictly required for edge AI capture.", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, "Camera permission is strictly required for automated bus CCTV AI capture.", Toast.LENGTH_LONG).show()
         }
     }
 
@@ -97,7 +95,7 @@ class MainActivity : AppCompatActivity() {
         binding.btnDismissPairing.setOnClickListener {
             userDismissedPairingOverlay = true
             binding.pairingOverlay.visibility = View.GONE
-            Toast.makeText(this, "Switched to Viewfinder Mode. Point camera at road.", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "Automated Bus CCTV Mode Active. Mounting camera facing road.", Toast.LENGTH_SHORT).show()
         }
 
         binding.btnShowPinOverlay.setOnClickListener {
@@ -111,10 +109,6 @@ class MainActivity : AppCompatActivity() {
 
         binding.btnToggleTorch.setOnClickListener {
             toggleTorch()
-        }
-
-        binding.btnManualSnap.setOnClickListener {
-            triggerManualFrameSnap()
         }
 
         binding.btnServerConfig.setOnClickListener {
@@ -159,7 +153,7 @@ class MainActivity : AppCompatActivity() {
                         val districtInfo = if (state.districtName != null) " • ${state.districtName}" else ""
                         binding.tvBusLabel.text = "${state.busLabel}$districtInfo"
                         binding.tvBusLabel.setBackgroundColor(Color.parseColor("#3310B981"))
-                        Toast.makeText(this@MainActivity, "Device Paired: ${state.busLabel}", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(this@MainActivity, "Bus CCTV Paired: ${state.busLabel}", Toast.LENGTH_SHORT).show()
                     }
                     is PairingState.Error -> {
                         if (!userDismissedPairingOverlay) {
@@ -223,7 +217,7 @@ class MainActivity : AppCompatActivity() {
             try {
                 cameraProvider.unbindAll()
                 camera = cameraProvider.bindToLifecycle(this, cameraSelector, preview, imageAnalyzer)
-                Log.i(tag, "CameraX bound to rear lens successfully")
+                Log.i(tag, "CameraX bound to rear lens successfully as automated CCTV sensor")
             } catch (exc: Exception) {
                 Log.e(tag, "CameraX binding failed: ${exc.message}", exc)
             }
@@ -272,14 +266,14 @@ class MainActivity : AppCompatActivity() {
 
                     if (top.type == "POTHOLE" && top.estimatedDiameterCm != null) {
                         binding.detectionBanner.visibility = View.VISIBLE
-                        binding.tvDetectionBannerType.text = "🚨 POTHOLE ${(top.confidence * 100).toInt()}%"
+                        binding.tvDetectionBannerType.text = "🚨 POTHOLE ${(top.confidence * 100).toInt()}% • AUTO UPLOADING"
                         binding.tvDetectionBannerSize.text = "Ø ${top.estimatedDiameterCm} cm"
                         binding.tvDetectionBannerCost.text = "Fix: ₹${top.estimatedRepairCost ?: "---"}"
                     } else {
                         binding.detectionBanner.visibility = View.GONE
                     }
                 } else {
-                    binding.tvDetectionStatus.text = "🟢 AI Scanning road surface in real-time..."
+                    binding.tvDetectionStatus.text = "🟢 Automated Bus CCTV AI scanning road surface..."
                     binding.tvDetectionStatus.setTextColor(Color.parseColor("#64748B"))
                     binding.detectionBanner.visibility = View.GONE
                 }
@@ -326,9 +320,9 @@ class MainActivity : AppCompatActivity() {
                             )
                         }
 
-                        tripEventsCount++
+                        autoTransmittedCount++
                         runOnUiThread {
-                            binding.tvTripEvents.text = "Trip Events: $tripEventsCount"
+                            binding.tvTripEvents.text = "Auto Transmitted: $autoTransmittedCount"
                         }
                     }
                 }
@@ -338,51 +332,6 @@ class MainActivity : AppCompatActivity() {
         } finally {
             imageProxy.close()
         }
-    }
-
-    private fun triggerManualFrameSnap() {
-        val bmp = latestBitmap
-        if (bmp == null) {
-            Toast.makeText(this, "Camera starting... try snap in a second", Toast.LENGTH_SHORT).show()
-            return
-        }
-
-        val rawDetections = detector.detect(bmp, latestRotationDegrees)
-        val selectedResult = if (rawDetections.isNotEmpty()) {
-            rawDetections.first()
-        } else {
-            val onnxDetector = detector as? OnnxRoadDefectDetector
-            onnxDetector?.generateTestPothole(bmp, latestRotationDegrees)
-                ?: DetectionResult(
-                    type = "POTHOLE",
-                    confidence = 0.88f,
-                    boundingBox = RectF(0.30f, 0.50f, 0.70f, 0.76f),
-                    croppedSnippetBase64 = null,
-                    estimatedDiameterCm = 45,
-                    estimatedRepairCost = 1850
-                )
-        }
-
-        binding.overlayView.setDetections(listOf(selectedResult))
-        val diameterDisplay = if (selectedResult.estimatedDiameterCm != null) " • Ø ${selectedResult.estimatedDiameterCm} cm (₹${selectedResult.estimatedRepairCost})" else ""
-        Toast.makeText(this, "📸 Snap Transmitted: ${selectedResult.type}$diameterDisplay", Toast.LENGTH_SHORT).show()
-
-        val activeSessionId = pairingManager.getActiveSessionId() ?: "demo-session-kapurthala"
-        val tel = locationTracker.currentTelemetry
-        eventSyncManager.dispatchDetectionEvent(
-            deviceSessionId = activeSessionId,
-            type = selectedResult.type,
-            confidence = selectedResult.confidence,
-            lat = tel.latitude,
-            lon = tel.longitude,
-            heading = tel.heading,
-            speed = tel.speedKmh,
-            imageSnippetBase64 = selectedResult.croppedSnippetBase64,
-            estimatedDiameterCm = selectedResult.estimatedDiameterCm?.toFloat(),
-            estimatedRepairCost = selectedResult.estimatedRepairCost?.toFloat()
-        )
-        tripEventsCount++
-        binding.tvTripEvents.text = "Trip Events: $tripEventsCount"
     }
 
     private fun triggerManualPotholeTest() {
@@ -402,7 +351,7 @@ class MainActivity : AppCompatActivity() {
 
         binding.overlayView.setDetections(listOf(testResult))
         val diameterDisplay = if (testResult.estimatedDiameterCm != null) " • Ø ${testResult.estimatedDiameterCm} cm (₹${testResult.estimatedRepairCost})" else ""
-        Toast.makeText(this, "⚡ Pothole Detected & Boxed$diameterDisplay", Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, "⚡ Test Defect Transmitted$diameterDisplay", Toast.LENGTH_SHORT).show()
 
         val activeSessionId = pairingManager.getActiveSessionId() ?: "demo-session-kapurthala"
         val tel = locationTracker.currentTelemetry
@@ -418,8 +367,8 @@ class MainActivity : AppCompatActivity() {
             estimatedDiameterCm = testResult.estimatedDiameterCm?.toFloat(),
             estimatedRepairCost = testResult.estimatedRepairCost?.toFloat()
         )
-        tripEventsCount++
-        binding.tvTripEvents.text = "Trip Events: $tripEventsCount"
+        autoTransmittedCount++
+        binding.tvTripEvents.text = "Auto Transmitted: $autoTransmittedCount"
     }
 
     override fun onDestroy() {
