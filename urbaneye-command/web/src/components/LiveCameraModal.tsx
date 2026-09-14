@@ -522,16 +522,32 @@ export const LiveCameraModal: React.FC<LiveCameraModalProps> = ({
       };
 
       const token = localStorage.getItem('urbaneye_token');
-      const response = await fetch('/api/events/ingest', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify(payload),
-      });
+      const headers = {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      };
 
-      if (response.ok) {
+      let response: Response | null = null;
+      try {
+        response = await fetch('/api/events/ingest', {
+          method: 'POST',
+          headers,
+          body: JSON.stringify(payload),
+        });
+      } catch (e) {
+        // Fallback retry to direct backend URL if dev proxy is offline
+        try {
+          response = await fetch('http://localhost:5000/api/events/ingest', {
+            method: 'POST',
+            headers,
+            body: JSON.stringify(payload),
+          });
+        } catch (e2) {
+          response = null;
+        }
+      }
+
+      if (response && response.ok) {
         const resData = await response.json();
         const readableType = typeToIngest.replace(/_/g, ' ');
         const isDup = Boolean(resData.deduplicated);
@@ -560,8 +576,24 @@ export const LiveCameraModal: React.FC<LiveCameraModalProps> = ({
         setCaptureHistory((prev) => [historyEntry, ...prev.slice(0, 7)]);
         if (onEventIngested) onEventIngested();
       } else {
-        console.warn('Ingest HTTP status non-200:', response.status);
-        setLastTransmitted('❌ Server Ingestion HTTP Error - Retrying connection...');
+        const statusErr = response ? `HTTP ${response.status}` : 'Offline';
+        console.warn('Ingest status non-200 or offline:', statusErr);
+        const msg = `❌ Server Connection (${statusErr}) - Saved to Local Edge Buffer`;
+        setLastTransmitted(msg);
+        speakAlert('Saved detection frame to local edge buffer.');
+
+        // Preserve captured item in local history carousel so user frame is never lost
+        const fallbackHistoryEntry: CapturedItem = {
+          id: `cap-local-${Date.now()}`,
+          type: typeToIngest,
+          confidence: confToIngest,
+          imageSnippet,
+          timestamp: new Date().toLocaleTimeString(),
+          diameterCm: widthCm,
+          repairCost,
+          deduplicated: false,
+        };
+        setCaptureHistory((prev) => [fallbackHistoryEntry, ...prev.slice(0, 7)]);
       }
     } catch (err: any) {
       console.error('Failed to transmit camera detection:', err);
@@ -879,8 +911,22 @@ export const LiveCameraModal: React.FC<LiveCameraModalProps> = ({
 
           {/* Status Alert Banner */}
           {lastTransmitted && (
-            <div className="p-2.5 bg-emerald-950/70 border border-emerald-500/50 rounded-xl text-emerald-300 text-xs font-semibold flex items-center space-x-2 animate-fade-in shadow-inner">
-              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+            <div
+              className={`p-2.5 rounded-xl text-xs font-semibold flex items-center space-x-2 animate-fade-in shadow-inner ${
+                lastTransmitted.includes('❌') || lastTransmitted.includes('Error') || lastTransmitted.includes('Failed')
+                  ? 'bg-rose-950/80 border border-rose-500/60 text-rose-300'
+                  : lastTransmitted.includes('🛡️')
+                  ? 'bg-purple-950/80 border border-purple-500/60 text-purple-300'
+                  : 'bg-emerald-950/70 border border-emerald-500/50 text-emerald-300'
+              }`}
+            >
+              {lastTransmitted.includes('❌') || lastTransmitted.includes('Error') || lastTransmitted.includes('Failed') ? (
+                <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+              ) : lastTransmitted.includes('🛡️') ? (
+                <ShieldCheck className="w-4 h-4 text-purple-400 shrink-0" />
+              ) : (
+                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+              )}
               <span className="truncate">{lastTransmitted}</span>
             </div>
           )}
