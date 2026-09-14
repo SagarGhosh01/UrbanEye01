@@ -463,6 +463,7 @@ export async function handleIngestEvent(req: Request, res: Response): Promise<vo
       }
 
       emitRoadEventUpdated(duplicateEvent);
+      emitNewRoadEvent(duplicateEvent);
 
       res.status(200).json({
         success: true,
@@ -603,7 +604,12 @@ eventsRouter.get(
 
       // Filter in-memory events
       let filteredMem = IN_MEMORY_EVENTS.filter((e) => {
-        if (targetDistrictId && targetDistrictId !== 'ALL' && e.districtId !== targetDistrictId && e.districtId !== 'dist-kapurthala') return false;
+        if (
+          targetDistrictId &&
+          targetDistrictId !== 'ALL' &&
+          String(e.districtId).toLowerCase() !== String(targetDistrictId).toLowerCase() &&
+          e.districtId !== 'dist-kapurthala'
+        ) return false;
         if (type && e.type !== (type as string).toUpperCase()) return false;
         if (status && e.status !== (status as string).toUpperCase()) return false;
         if (busLabel && !e.busLabel?.toLowerCase().includes((busLabel as string).toLowerCase())) return false;

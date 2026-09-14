@@ -530,7 +530,7 @@ export const LiveCameraModal: React.FC<LiveCameraModalProps> = ({
       const areaM2 = activeBox?.areaM2 || 0.48;
       const repairCost = activeBox?.repairCost || 3850;
 
-      // 🛡️ Client-side O(1) GPS Grid & pHash Deduplication Check
+      // 🛡️ Client-side O(1) GPS Grid & pHash Deduplication Check (Cache tracking)
       const dedupResult = deduplicationService.checkAndRegisterDetection(
         lat,
         lon,
@@ -538,14 +538,6 @@ export const LiveCameraModal: React.FC<LiveCameraModalProps> = ({
         imageSnippet,
         { widthCm, lengthCm, depthCm, repairCost }
       );
-
-      if (dedupResult.isDuplicate && dedupResult.action === 'SKIP_UPLOAD') {
-        const msg = `🛡️ Deduplicated: Pothole seen ${dedupResult.entry.timesSeen} times (Upload skipped)`;
-        setLastTransmitted(msg);
-        speakAlert(`Pothole seen ${dedupResult.entry.timesSeen} times. Client upload skipped.`);
-        setIsCapturing(false);
-        return;
-      }
 
       const currentSpeed = Math.round(25 + Math.random() * 25);
       setTelemetrySpeed(currentSpeed);

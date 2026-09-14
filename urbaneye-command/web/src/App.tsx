@@ -213,13 +213,22 @@ const defaultStats: AnalyticsStats = {
     };
 
     const handleUpdatedEvent = (updatedEvent: RoadEvent) => {
-      setEvents((prev) => prev.map((e) => (e.id === updatedEvent.id ? updatedEvent : e)));
+      console.log('⚡ Received Live Road Event Update/Deduplication:', updatedEvent);
+      setEvents((prev) => {
+        const exists = prev.some((e) => e.id === updatedEvent.id);
+        if (exists) {
+          return [updatedEvent, ...prev.filter((e) => e.id !== updatedEvent.id)];
+        }
+        return [updatedEvent, ...prev];
+      });
+      setLatestLiveAlert(updatedEvent);
       if (selectedEventForDetail?.id === updatedEvent.id) {
         setSelectedEventForDetail(updatedEvent);
       }
       if (activeDistrict) {
         api.getEventStats(activeDistrict.id).then(setStats).catch(console.error);
       }
+      setTimeout(() => setLatestLiveAlert((curr) => (curr?.id === updatedEvent.id ? null : curr)), 6000);
     };
 
     let cleanupDistrict: (() => void) | null = null;
