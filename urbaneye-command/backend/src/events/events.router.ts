@@ -260,9 +260,11 @@ export async function handleIngestEvent(req: Request, res: Response): Promise<vo
 
     if (typeof rawImage === 'string' && rawImage.trim()) {
       rawImage = rawImage.trim().replace(/[\r\n"']/g, '');
-      if (!rawImage.includes('<svg') && !rawImage.startsWith('/uploads')) {
-        rawImage = saveBase64ImageToDisk(rawImage, 'detections');
+      if (!rawImage.startsWith('data:') && !rawImage.startsWith('http') && !rawImage.startsWith('/')) {
+        rawImage = `data:image/jpeg;base64,${rawImage}`;
       }
+      // Save local disk backup if server has writable filesystem
+      saveBase64ImageToDisk(rawImage, 'detections');
     } else {
       rawImage = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300"><rect width="400" height="300" fill="%231e293b"/><path d="M 50 150 Q 200 80 350 150 Q 200 220 50 150 Z" fill="%230f172a" stroke="%23f97316" stroke-width="4"/><circle cx="200" cy="150" r="45" fill="%23020617"/><text x="200" y="240" font-family="sans-serif" font-size="14" font-weight="bold" fill="%23f97316" text-anchor="middle">EDGE-AI ROAD DEFECT CAPTURE</text></svg>';
     }
@@ -586,8 +588,14 @@ eventsRouter.post(
         return;
       }
 
-      // Save photo to physical server disk storage (/uploads/citizen-reports/...)
-      const savedImgUrl = saveBase64ImageToDisk(cleanImg, 'citizen-reports');
+      // Format image payload as self-contained Data URL for production database persistence
+      let imgDataPayload = cleanImg;
+      if (!imgDataPayload.startsWith('data:') && !imgDataPayload.startsWith('http') && !imgDataPayload.startsWith('/')) {
+        imgDataPayload = `data:image/jpeg;base64,${imgDataPayload}`;
+      }
+
+      // Save photo to physical server disk storage (/uploads/citizen-reports/...) for local backup
+      saveBase64ImageToDisk(cleanImg, 'citizen-reports');
 
       let detectedType = (userSuggestedType || 'POTHOLE').toUpperCase();
       let confidence = 0.91;
@@ -651,7 +659,7 @@ eventsRouter.post(
         confidence,
         latitude: numLat,
         longitude: numLon,
-        imageSnippet: savedImgUrl,
+        imageSnippet: imgDataPayload,
         estimatedDiameterCm: isDepthComputable ? 48 : null,
         widthM: isDepthComputable ? 0.48 : null,
         lengthM: isDepthComputable ? 0.65 : null,
@@ -683,7 +691,7 @@ eventsRouter.post(
             confidence,
             latitude: numLat,
             longitude: numLon,
-            imageSnippet: savedImgUrl,
+            imageSnippet: imgDataPayload,
             estimatedDiameterCm: newCitizenEvent.estimatedDiameterCm,
             widthM: newCitizenEvent.widthM,
             lengthM: newCitizenEvent.lengthM,
