@@ -4,7 +4,7 @@ import { Eye, CheckCircle2, Wrench, AlertTriangle, Image as ImageIcon, Trash2, M
 import { useTheme } from '../contexts/ThemeContext';
 import { getCategoryColor, getCategoryDisplayName } from '../constants/detectionCategories';
 import { getPotholeCostDetails } from '../utils/potholeEstimates';
-import { resolveImageSrc } from '../utils/imageUtils';
+import { resolveImageSrc, DEFAULT_ROAD_DEFECT_SVG } from '../utils/imageUtils';
 
 interface DefectTableProps {
   events: RoadEvent[];
@@ -240,8 +240,11 @@ export const DefectTable: React.FC<DefectTableProps> = ({
                     className="w-16 h-14 rounded-lg overflow-hidden border border-slate-600 bg-slate-800 shrink-0 relative group"
                   >
                     <img
-                      src={resolveImageSrc(event.imageSnippet) || ''}
-                      alt="Crop"
+                      src={resolveImageSrc(event.imageSnippet)}
+                      alt="Defect"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = DEFAULT_ROAD_DEFECT_SVG;
+                      }}
                       className="w-full h-full object-cover"
                     />
                     <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-70">
@@ -443,8 +446,11 @@ export const DefectTable: React.FC<DefectTableProps> = ({
                         className="relative group w-14 h-10 rounded border border-slate-600/50 overflow-hidden bg-slate-700 block"
                       >
                         <img
-                          src={resolveImageSrc(event.imageSnippet) || ''}
-                          alt="Crop"
+                          src={resolveImageSrc(event.imageSnippet)}
+                          alt="Defect"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = DEFAULT_ROAD_DEFECT_SVG;
+                          }}
                           className="w-full h-full object-cover group-hover:scale-105 transition"
                         />
                         <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 flex items-center justify-center transition">

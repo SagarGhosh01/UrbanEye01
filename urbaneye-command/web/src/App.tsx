@@ -19,6 +19,7 @@ import { CitizenReportView } from './components/CitizenReportView';
 import { Login } from './pages/Login';
 import { LandingPage } from './pages/LandingPage';
 import { ThemeProvider, useTheme } from './contexts/ThemeContext';
+import { resolveImageSrc, DEFAULT_ROAD_DEFECT_SVG } from './utils/imageUtils';
 import { RefreshCw, Radio, BellRing, Sparkles, ArrowLeft, ShieldAlert, Activity, Camera, Bus } from 'lucide-react';
 
 export const App: React.FC = () => {
@@ -630,8 +631,11 @@ const defaultStats: AnalyticsStats = {
                           >
                             {ev.imageSnippet ? (
                               <img
-                                src={ev.imageSnippet.startsWith('data:') ? ev.imageSnippet : `data:image/jpeg;base64,${ev.imageSnippet}`}
-                                alt="Crop"
+                                src={resolveImageSrc(ev.imageSnippet)}
+                                alt="Defect"
+                                onError={(e) => {
+                                  (e.target as HTMLImageElement).src = DEFAULT_ROAD_DEFECT_SVG;
+                                }}
                                 className="w-12 h-10 object-cover rounded border border-slate-200 shrink-0"
                               />
                             ) : (

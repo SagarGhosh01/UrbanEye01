@@ -255,7 +255,7 @@ export const LiveMap: React.FC<LiveMapProps> = ({
           ${
             event.imageSnippet
               ? `<div style="margin-bottom: 8px; border-radius: 4px; overflow: hidden; border: 1px solid #e2e8f0; max-height: 100px;">
-                  <img src="${resolveImageSrc(event.imageSnippet)}" alt="Camera snippet" style="width: 100%; height: 95px; object-fit: cover; display: block;" />
+                  <img src="${resolveImageSrc(event.imageSnippet)}" alt="Camera snippet" onerror="this.onerror=null;this.src='data:image/svg+xml;utf8,<svg xmlns=\\'http://www.w3.org/2000/svg\\' width=\\'400\\' height=\\'300\\' viewBox=\\'0 0 400 300\\'><rect width=\\'400\\' height=\\'300\\' fill=\\'%231e293b\\'/><path d=\\'M 50 150 Q 200 80 350 150 Q 200 220 50 150 Z\\' fill=\\'%230f172a\\' stroke=\\'%23f97316\\' stroke-width=\\'4\\'/><circle cx=\\'200\\' cy=\\'150\\' r=\\'45\\' fill=\\'%23020617\\'/><text x=\\'200\\' y=\\'240\\' font-family=\\'sans-serif\\' font-size=\\'14\\' font-weight=\\'bold\\' fill=\\'%23f97316\\' text-anchor=\\'middle\\'>EDGE-AI ROAD DEFECT CAPTURE</text></svg>';" style="width: 100%; height: 95px; object-fit: cover; display: block;" />
                 </div>`
               : ''
           }

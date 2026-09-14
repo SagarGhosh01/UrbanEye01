@@ -61,6 +61,13 @@ app.use('/api/gps', gpsRouter);
 
 
 
+// Serve uploaded images (e.g. citizen reports, camera captures)
+const uploadsDir = path.resolve(process.cwd(), 'uploads');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+app.use('/uploads', express.static(uploadsDir));
+
 app.get('/api/health', (req, res) => {
   res.json({
     status: 'HEALTHY',

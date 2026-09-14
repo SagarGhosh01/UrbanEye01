@@ -14,6 +14,7 @@ import {
   ShieldCheck,
   Info,
   X,
+  Image as ImageIcon,
 } from 'lucide-react';
 import L from 'leaflet';
 
@@ -80,6 +81,42 @@ const CitizenMapPicker: React.FC<{
   return <div ref={containerRef} className="w-full h-full" />;
 };
 
+// Client-Side Canvas Image Compression (Optimizes high-res phone camera photos)
+const compressImageFile = (file: File, maxDim = 1280): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      let { width, height } = img;
+      if (width > maxDim || height > maxDim) {
+        if (width > height) {
+          height = Math.round((height * maxDim) / width);
+          width = maxDim;
+        } else {
+          width = Math.round((width * maxDim) / height);
+          height = maxDim;
+        }
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.drawImage(img, 0, 0, width, height);
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+        resolve(dataUrl);
+      } else {
+        reject(new Error('Canvas context unavailable'));
+      }
+    };
+    img.onerror = (err) => reject(err);
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      img.src = e.target?.result as string;
+    };
+    reader.readAsDataURL(file);
+  });
+};
+
 export const CitizenReportView: React.FC<CitizenReportViewProps> = ({ user, onReportSubmitted }) => {
   // State
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
@@ -103,12 +140,23 @@ export const CitizenReportView: React.FC<CitizenReportViewProps> = ({ user, onRe
   const [myReports, setMyReports] = useState<RoadEvent[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(true);
 
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const cameraInputRef = useRef<HTMLInputElement | null>(null);
+  const galleryInputRef = useRef<HTMLInputElement | null>(null);
 
-  // Initial Geolocation Lookup & History Load
+  // Initial Geolocation Lookup & Restore Cached Phone Photo
   useEffect(() => {
     fetchGps();
     loadMyReports();
+
+    // Check device local storage for temporary cached photo
+    try {
+      const cachedPhoto = localStorage.getItem('urbaneye_recent_citizen_photo');
+      if (cachedPhoto) {
+        setSelectedImage(cachedPhoto);
+      }
+    } catch {
+      // ignore
+    }
   }, []);
 
   const fetchGps = () => {
@@ -144,20 +192,40 @@ export const CitizenReportView: React.FC<CitizenReportViewProps> = ({ user, onRe
     }
   };
 
-  // Handle File Upload from Gallery / Camera Capture
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  // Handle Image Selection with Automatic Canvas Compression & Temporary Local Storage
+  const processImageFile = async (file: File) => {
     setAnalysisResult(null);
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const b64 = event.target?.result as string;
-      if (b64) setSelectedImage(b64);
-    };
-    reader.readAsDataURL(file);
+    try {
+      const compressedB64 = await compressImageFile(file, 1280);
+      setSelectedImage(compressedB64);
+      // Cache photo temporarily on user's device
+      try {
+        localStorage.setItem('urbaneye_recent_citizen_photo', compressedB64);
+      } catch {
+        // quota exceeded fallback
+      }
+    } catch (err) {
+      console.warn('Fallback reading uncompressed file:', err);
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const b64 = event.target?.result as string;
+        if (b64) {
+          setSelectedImage(b64);
+          try {
+            localStorage.setItem('urbaneye_recent_citizen_photo', b64);
+          } catch {}
+        }
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
-  // Submit Photo for Real AI Analysis & Database Registration
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) processImageFile(file);
+  };
+
+  // Submit Photo for Real AI Analysis & Permanent Server Disk Storage
   const handleSubmitReport = async () => {
     if (!selectedImage) return;
     setIsAnalyzing(true);
@@ -175,6 +243,10 @@ export const CitizenReportView: React.FC<CitizenReportViewProps> = ({ user, onRe
 
       if (res.success && res.event) {
         setMyReports((prev) => [res.event!, ...prev]);
+        // Clear cached photo from device storage once successfully submitted
+        try {
+          localStorage.removeItem('urbaneye_recent_citizen_photo');
+        } catch {}
         if (onReportSubmitted) onReportSubmitted(res.event);
       }
     } catch (err: any) {
@@ -185,6 +257,14 @@ export const CitizenReportView: React.FC<CitizenReportViewProps> = ({ user, onRe
     } finally {
       setIsAnalyzing(false);
     }
+  };
+
+  const clearSelectedPhoto = () => {
+    setSelectedImage(null);
+    setAnalysisResult(null);
+    try {
+      localStorage.removeItem('urbaneye_recent_citizen_photo');
+    } catch {}
   };
 
   const getStatusBadge = (status: EventStatus) => {
@@ -211,7 +291,7 @@ export const CitizenReportView: React.FC<CitizenReportViewProps> = ({ user, onRe
           </div>
           <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight">Report Road Hazards & Track Repair Lifecycle</h1>
           <p className="text-xs sm:text-sm text-slate-300 max-w-2xl">
-            Upload photos of road defects. UrbanEye's AI automatically analyzes damage severity, geotags the location, and dispatches real-time alerts to municipal road authorities.
+            Upload photos of road defects. UrbanEye's AI automatically analyzes damage severity, geotags the location, saves photos to server storage, and dispatches real-time alerts to municipal road authorities.
           </p>
         </div>
 
@@ -240,30 +320,59 @@ export const CitizenReportView: React.FC<CitizenReportViewProps> = ({ user, onRe
             <span className="text-[11px] text-slate-400 font-mono">STEP 1 OF 2</span>
           </div>
 
-          {/* Upload Drop Zone / Preview */}
+          {/* Hidden Inputs for Direct Phone Camera vs Gallery Upload */}
           <input
             type="file"
-            ref={fileInputRef}
+            ref={cameraInputRef}
+            onChange={handleFileChange}
+            accept="image/*"
+            capture="environment"
+            className="hidden"
+          />
+          <input
+            type="file"
+            ref={galleryInputRef}
             onChange={handleFileChange}
             accept="image/*"
             className="hidden"
           />
 
           {!selectedImage ? (
-            <div
-              onClick={() => fileInputRef.current?.click()}
-              className="border-2 border-dashed border-slate-700 hover:border-teal-400/60 rounded-xl p-8 text-center cursor-pointer transition bg-slate-950/40 hover:bg-slate-900 flex flex-col items-center justify-center space-y-3 group"
-            >
-              <div className="w-14 h-14 rounded-2xl bg-teal-500/10 border border-teal-400/30 flex items-center justify-center text-teal-300 group-hover:scale-110 transition">
-                <Upload className="w-7 h-7" />
+            <div className="border-2 border-dashed border-slate-700 rounded-xl p-6 text-center bg-slate-950/40 space-y-5">
+              <div className="w-14 h-14 mx-auto rounded-2xl bg-teal-500/10 border border-teal-400/30 flex items-center justify-center text-teal-300">
+                <Camera className="w-7 h-7" />
               </div>
+
               <div>
-                <h4 className="font-bold text-sm text-slate-200">Tap to Capture Photo or Choose from Gallery</h4>
-                <p className="text-xs text-slate-400 mt-1">Supports JPEG, PNG, WEBP from mobile cameras and desktop</p>
+                <h4 className="font-bold text-sm text-slate-200">Capture Road Defect Photo</h4>
+                <p className="text-xs text-slate-400 mt-1 max-w-md mx-auto">
+                  Photos are compressed on your phone and permanently stored in server disk storage for authority verification.
+                </p>
               </div>
-              <div className="flex items-center space-x-2 text-[11px] text-amber-300 bg-amber-500/10 border border-amber-500/20 px-3 py-1 rounded-full font-medium">
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-md mx-auto">
+                <button
+                  type="button"
+                  onClick={() => cameraInputRef.current?.click()}
+                  className="py-3 px-4 rounded-xl bg-teal-600 hover:bg-teal-700 font-extrabold text-xs text-white shadow-lg flex items-center justify-center space-x-2 transition active:scale-98"
+                >
+                  <Camera className="w-4 h-4 text-teal-200" />
+                  <span>Take Phone Camera Photo</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => galleryInputRef.current?.click()}
+                  className="py-3 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 font-extrabold text-xs text-slate-200 shadow-md flex items-center justify-center space-x-2 transition active:scale-98"
+                >
+                  <ImageIcon className="w-4 h-4 text-slate-400" />
+                  <span>Choose from Gallery</span>
+                </button>
+              </div>
+
+              <div className="inline-flex items-center space-x-2 text-[11px] text-amber-300 bg-amber-500/10 border border-amber-500/20 px-3 py-1 rounded-full font-medium">
                 <Sparkles className="w-3 h-3" />
-                <span>AI Perception Model verifies real defects</span>
+                <span>AI Perception Model verifies real defect photos</span>
               </div>
             </div>
           ) : (
@@ -271,15 +380,17 @@ export const CitizenReportView: React.FC<CitizenReportViewProps> = ({ user, onRe
               <div className="relative rounded-xl overflow-hidden border border-slate-700 max-h-[320px] bg-black flex items-center justify-center">
                 <img src={selectedImage} alt="Selected preview" className="w-full h-full object-contain max-h-[320px]" />
                 <button
-                  onClick={() => {
-                    setSelectedImage(null);
-                    setAnalysisResult(null);
-                  }}
+                  type="button"
+                  onClick={clearSelectedPhoto}
                   className="absolute top-3 right-3 bg-red-600/90 hover:bg-red-700 text-white p-1.5 rounded-full shadow-lg transition"
                   title="Remove Image"
                 >
                   <X className="w-4 h-4" />
                 </button>
+                <div className="absolute bottom-2 left-2 bg-slate-900/80 backdrop-blur-md px-2.5 py-1 rounded-md text-[10px] font-mono text-emerald-400 border border-emerald-500/30 flex items-center space-x-1">
+                  <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                  <span>Temporarily Stored on Device</span>
+                </div>
               </div>
             </div>
           )}
@@ -376,7 +487,7 @@ export const CitizenReportView: React.FC<CitizenReportViewProps> = ({ user, onRe
                   <h4 className="font-extrabold text-sm">
                     {analysisResult.noDefect ? 'No Defect Detected' : 'Report Registered on Command Portal!'}
                   </h4>
-                  <p className="text-xs text-slate-300">{analysisResult.message || 'Report analyzed and transmitted.'}</p>
+                  <p className="text-xs text-slate-300">{analysisResult.message || 'Report analyzed and saved to server storage.'}</p>
                 </div>
               </div>
             </div>
@@ -396,12 +507,12 @@ export const CitizenReportView: React.FC<CitizenReportViewProps> = ({ user, onRe
             {isAnalyzing ? (
               <>
                 <RefreshCw className="w-4 h-4 animate-spin text-amber-300" />
-                <span>Running AI Defect Perception & Geotagging...</span>
+                <span>Running AI Perception & Saving Photo to Server...</span>
               </>
             ) : (
               <>
                 <Sparkles className="w-4 h-4 text-amber-300" />
-                <span>Submit Citizen Defect Report to Authority</span>
+                <span>Submit Defect Report & Broadcast to Authority Dashboard</span>
               </>
             )}
           </button>

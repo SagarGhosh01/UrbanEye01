@@ -1,4 +1,6 @@
 import { Router, Request, Response } from 'express';
+import fs from 'fs';
+import path from 'path';
 import { prisma } from '../prisma.js';
 import { requireAuth, AuthenticatedRequest, enforceDistrictScope } from '../middleware/auth.middleware.js';
 import { emitNewRoadEvent, emitRoadEventUpdated, emitRoadEventDeleted, getIO } from '../realtime/socket.js';
@@ -7,6 +9,47 @@ import { IN_MEMORY_SESSIONS } from '../pairing/pairing.router.js';
 export const eventsRouter = Router();
 
 export const IN_MEMORY_EVENTS: any[] = [];
+
+/**
+ * Persists base64 image payload to physical server storage (uploads directory)
+ * and returns the static HTTP URL path (/uploads/citizen-reports/report_...).
+ */
+export function saveBase64ImageToDisk(base64Data: string, subfolder: string = 'citizen-reports'): string {
+  try {
+    if (!base64Data) return base64Data;
+
+    // If it's already a static URL or web URL, return as is
+    if (base64Data.startsWith('/') || base64Data.startsWith('http://') || base64Data.startsWith('https://')) {
+      return base64Data;
+    }
+
+    const uploadsDir = path.resolve(process.cwd(), 'uploads', subfolder);
+    if (!fs.existsSync(uploadsDir)) {
+      fs.mkdirSync(uploadsDir, { recursive: true });
+    }
+
+    let ext = 'jpg';
+    let pureBase64 = base64Data.trim();
+    if (pureBase64.startsWith('data:image/')) {
+      const parts = pureBase64.split(';base64,');
+      const mime = parts[0].replace('data:image/', '');
+      if (mime.includes('png')) ext = 'png';
+      else if (mime.includes('webp')) ext = 'webp';
+      pureBase64 = parts[1] || parts[0];
+    }
+
+    const filename = `report_${Date.now()}_${Math.random().toString(36).substring(2, 7)}.${ext}`;
+    const filePath = path.join(uploadsDir, filename);
+    const buffer = Buffer.from(pureBase64, 'base64');
+    fs.writeFileSync(filePath, buffer);
+
+    console.log(`📸 Saved defect photo to disk: ${filePath}`);
+    return `/uploads/${subfolder}/${filename}`;
+  } catch (err: any) {
+    console.error('⚠️ Failed to write image to disk storage, preserving inline snippet:', err.message);
+    return base64Data;
+  }
+}
 
 export interface AdvancedDefectMetrics {
   diameterCm: number | null;
@@ -217,6 +260,9 @@ export async function handleIngestEvent(req: Request, res: Response): Promise<vo
 
     if (typeof rawImage === 'string' && rawImage.trim()) {
       rawImage = rawImage.trim().replace(/[\r\n"']/g, '');
+      if (!rawImage.includes('<svg') && !rawImage.startsWith('/uploads')) {
+        rawImage = saveBase64ImageToDisk(rawImage, 'detections');
+      }
     } else {
       rawImage = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300"><rect width="400" height="300" fill="%231e293b"/><path d="M 50 150 Q 200 80 350 150 Q 200 220 50 150 Z" fill="%230f172a" stroke="%23f97316" stroke-width="4"/><circle cx="200" cy="150" r="45" fill="%23020617"/><text x="200" y="240" font-family="sans-serif" font-size="14" font-weight="bold" fill="%23f97316" text-anchor="middle">EDGE-AI ROAD DEFECT CAPTURE</text></svg>';
     }
@@ -540,6 +586,9 @@ eventsRouter.post(
         return;
       }
 
+      // Save photo to physical server disk storage (/uploads/citizen-reports/...)
+      const savedImgUrl = saveBase64ImageToDisk(cleanImg, 'citizen-reports');
+
       let detectedType = (userSuggestedType || 'POTHOLE').toUpperCase();
       let confidence = 0.91;
 
@@ -602,7 +651,7 @@ eventsRouter.post(
         confidence,
         latitude: numLat,
         longitude: numLon,
-        imageSnippet: cleanImg,
+        imageSnippet: savedImgUrl,
         estimatedDiameterCm: isDepthComputable ? 48 : null,
         widthM: isDepthComputable ? 0.48 : null,
         lengthM: isDepthComputable ? 0.65 : null,
@@ -634,7 +683,7 @@ eventsRouter.post(
             confidence,
             latitude: numLat,
             longitude: numLon,
-            imageSnippet: cleanImg,
+            imageSnippet: savedImgUrl,
             estimatedDiameterCm: newCitizenEvent.estimatedDiameterCm,
             widthM: newCitizenEvent.widthM,
             lengthM: newCitizenEvent.lengthM,

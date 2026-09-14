@@ -81,6 +81,7 @@ export const LiveCameraModal: React.FC<LiveCameraModalProps> = ({
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const prevBoxesRef = useRef<DetectedPotholeBox[]>([]);
+  const lastAutoCaptureTimeRef = useRef<number>(0);
 
   // Camera & Sensor State
   const [cameraActive, setCameraActive] = useState(false);
@@ -447,6 +448,16 @@ export const LiveCameraModal: React.FC<LiveCameraModalProps> = ({
 
       if (validTrackedBoxes.length > 0 && (!selectedBoxId || !validTrackedBoxes.some((b) => b.id === selectedBoxId))) {
         setSelectedBoxId(validTrackedBoxes[0].id);
+      }
+
+      // Auto-Ingestion Engine: Automatically capture & ingest confirmed real defects to administration dashboard
+      const confirmedBox = validTrackedBoxes.find((b) => b.status === 'CONFIRMED' || b.confidence >= 0.85);
+      if (confirmedBox && autoDetectLoop && !isCapturing) {
+        const now = Date.now();
+        if (now - lastAutoCaptureTimeRef.current > 3500) {
+          lastAutoCaptureTimeRef.current = now;
+          captureAndTransmit(undefined, confirmedBox.type, confirmedBox.confidence);
+        }
       }
     } catch (e) {
       // Ignore read errors

@@ -8,11 +8,13 @@ package-lock.json
 dev.db
 dev.db-journal
 
-# Build outputs
+# Build outputs & Uploads
 dist/
 build/
 urbaneye-command/backend/dist/
 urbaneye-command/web/dist/
+urbaneye-command/backend/uploads/*
+!urbaneye-command/backend/uploads/.gitkeep
 
 # Heavy Machine Learning Datasets & Weights
 Road Defect.v1i.yolov8/

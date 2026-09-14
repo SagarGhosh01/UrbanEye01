@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { resolveImageSrc } from '../utils/imageUtils';
 import { getPotholeCostDetails } from '../utils/potholeEstimates';
+import { AssignWorkOrderModal } from './AssignWorkOrderModal';
 
 interface DefectDetailModalProps {
   event: RoadEvent | null;
@@ -40,6 +41,7 @@ export const DefectDetailModal: React.FC<DefectDetailModalProps> = ({
   const [actionError, setActionError] = useState<string | null>(null);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [isAssignWorkOrderOpen, setIsAssignWorkOrderOpen] = useState(false);
 
   useEffect(() => {
     if (event) {
@@ -371,7 +373,7 @@ export const DefectDetailModal: React.FC<DefectDetailModalProps> = ({
             <div className="flex items-center space-x-2">
               {event.status !== 'ASSIGNED_FOR_REPAIR' && event.status !== 'RESOLVED' && (
                 <button
-                  onClick={() => handleAction('ASSIGNED_FOR_REPAIR')}
+                  onClick={() => setIsAssignWorkOrderOpen(true)}
                   disabled={submitting}
                   className="px-4 py-2.5 text-xs font-bold rounded-xl bg-orange-600 hover:bg-orange-700 text-white shadow-sm transition flex items-center space-x-1.5 disabled:opacity-50 min-h-[44px]"
                 >
@@ -404,6 +406,18 @@ export const DefectDetailModal: React.FC<DefectDetailModalProps> = ({
           )}
         </div>
       </div>
+
+      {/* PWD / NHAI Work Order Assignment Portal Modal */}
+      <AssignWorkOrderModal
+        event={event}
+        isOpen={isAssignWorkOrderOpen}
+        onClose={() => setIsAssignWorkOrderOpen(false)}
+        onConfirmAssignment={async (id, status, formattedNotes) => {
+          setNotes(formattedNotes || '');
+          await onUpdateStatus(id, status, formattedNotes);
+          onClose();
+        }}
+      />
     </div>
   );
 };
