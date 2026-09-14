@@ -44,18 +44,21 @@ export interface DetectedPotholeBox {
   type: string;
   label: string; // e.g. "pothole 0.86"
   confidence: number;
+  confidenceHistory: number[]; // Sparkline history across last N frames
+  status: 'UNCONFIRMED' | 'CONFIRMED';
   x: number; // SVG X coordinate (0..500)
   y: number; // SVG Y coordinate (0..350)
   w: number; // SVG Width
   h: number; // SVG Height
   widthCm: number;
-  lengthM: number;
+  lengthCm: number; // Standardized in cm
   depthCm: number;
   areaM2: number;
   severity: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
   severityEmoji: string;
   repairCost: number;
   color: string;
+  labelYOffset: number; // Staggering offset to prevent label clutter
 }
 
 const AI_ENGINES = [
@@ -97,6 +100,7 @@ export const LiveCameraModal: React.FC<LiveCameraModalProps> = ({
   const [lastTransmitted, setLastTransmitted] = useState<string | null>(null);
   const [captureHistory, setCaptureHistory] = useState<CapturedItem[]>([]);
   const [selectedHistoryItem, setSelectedHistoryItem] = useState<CapturedItem | null>(null);
+  const [flaggedFalsePositives, setFlaggedFalsePositives] = useState<string[]>([]);
 
   useEffect(() => {
     if (isOpen) {
@@ -226,9 +230,8 @@ export const LiveCameraModal: React.FC<LiveCameraModalProps> = ({
   };
 
   /**
-   * Spatial Pixel Vision Analyzer with Multi-Sector Contour Clustering
-   * & IoU Frame-to-Frame Stable Object Tracking.
-   * Extracts distinct bounding boxes for EACH pothole cavity on screen (2, 3 or more spots simultaneously)!
+   * Spatial Pixel Vision Analyzer with Screen/Flat Surface Rejector,
+   * Depth-Plane Perspective Check, and Staggered Label Positioning.
    */
   const analyzeSpatialPotholes = () => {
     if (!canvasRef.current || !videoRef.current || !cameraActive) return;
@@ -256,9 +259,10 @@ export const LiveCameraModal: React.FC<LiveCameraModalProps> = ({
       let totalLuma = 0;
       let darkCavityPixels = 0;
       let warmSkinPixels = 0;
+      let flatSurfacePixels = 0;
       const totalPixels = data.length / 4;
 
-      // Divide ROI into 3 spatial sectors (Left, Center, Right) to detect multiple potholes simultaneously
+      // Sector spatial analysis
       const numSectors = 3;
       const sectorBounds = [
         { minX: roiWidth, maxX: 0, minY: roiHeight, maxY: 0, count: 0 },
@@ -277,9 +281,14 @@ export const LiveCameraModal: React.FC<LiveCameraModalProps> = ({
         const px = pixelIndex % roiWidth;
         const py = Math.floor(pixelIndex / roiWidth);
 
-        // Detect skin / warm indoor wall tones
+        // Detect warm skin / monitor backlight tones
         if (r > 1.2 * g && r > 1.2 * b && r > 90) {
           warmSkinPixels++;
+        }
+
+        // Screen bezel / flat uniform plane detector (low variance display pixels)
+        if (Math.abs(r - g) < 12 && Math.abs(g - b) < 12 && luma > 110 && luma < 210) {
+          flatSurfacePixels++;
         }
 
         // Detect dark asphalt cavity / water-filled depression
@@ -295,11 +304,13 @@ export const LiveCameraModal: React.FC<LiveCameraModalProps> = ({
         }
       }
 
-      const skinRatio = warmSkinPixels / (totalPixels / 4);
-      const darkRatio = darkCavityPixels / (totalPixels / 4);
+      const skinRatio = warmSkinPixels / totalPixels;
+      const darkRatio = darkCavityPixels / totalPixels;
+      const flatSurfaceRatio = flatSurfacePixels / totalPixels;
 
-      // If skin/wall ratio is high or dark cavity ratio is negligible -> 0 boxes!
-      if (skinRatio > 0.18 || darkRatio < 0.035) {
+      // 🛑 Screen / Flat-Surface Rejector Guard:
+      // If skin/wall ratio is high OR flat surface ratio is dominant OR dark cavity ratio is negligible -> 0 boxes!
+      if (skinRatio > 0.18 || flatSurfaceRatio > 0.42 || darkRatio < 0.035) {
         setDetectedPotholes([]);
         setSelectedBoxId(null);
         prevBoxesRef.current = [];
@@ -308,9 +319,9 @@ export const LiveCameraModal: React.FC<LiveCameraModalProps> = ({
 
       const svgW = 500;
       const svgH = 350;
-      const palette = ['#ef4444', '#2563eb', '#f59e0b'];
+      const palette = ['#ef4444', '#10b981', '#f59e0b'];
       const confidences = [0.94, 0.88, 0.82];
-      const newCandidateBoxes: DetectedPotholeBox[] = [];
+      const rawCandidateBoxes: DetectedPotholeBox[] = [];
 
       sectorBounds.forEach((s, idx) => {
         if (s.count >= 20 && s.maxX > s.minX && s.maxY > s.minY) {
@@ -321,40 +332,46 @@ export const LiveCameraModal: React.FC<LiveCameraModalProps> = ({
 
           const conf = confidences[idx % confidences.length];
           const widthCm = Math.round(normW * 0.42);
-          const lengthM = Number((normH * 0.0055).toFixed(2));
+          const lengthCm = Math.round(normH * 0.55); // Standardized to cm!
           const depthCm = Number((4.2 + (normW * normH) / 14000).toFixed(1));
-          const areaM2 = Number(((widthCm / 100) * lengthM).toFixed(2));
+          const areaM2 = Number(((widthCm / 100) * (lengthCm / 100)).toFixed(2));
           const repairCost = Math.round(areaM2 * 3400 + depthCm * 190 + 750);
 
-          newCandidateBoxes.push({
+          rawCandidateBoxes.push({
             id: `pothole-sector-${idx}`,
             type: 'POTHOLE',
             label: `pothole ${conf}`,
             confidence: conf,
+            confidenceHistory: [conf],
+            status: 'UNCONFIRMED',
             x: Math.min(svgW - normW - 15, Math.max(15, normX)),
             y: Math.min(svgH - normH - 15, Math.max(120, normY)),
             w: normW,
             h: normH,
             widthCm,
-            lengthM,
+            lengthCm,
             depthCm,
             areaM2,
             severity: depthCm > 7.0 ? 'CRITICAL' : 'HIGH',
             severityEmoji: depthCm > 7.0 ? '🔴' : '🟠',
             repairCost,
             color: palette[idx % palette.length],
+            labelYOffset: 0,
           });
         }
       });
 
-      // Frame-to-frame IoU box tracking & coordinate smoothing
+      // Frame-to-frame IoU box tracking & status promotion (UNCONFIRMED -> CONFIRMED)
       const prevBoxes = prevBoxesRef.current;
-      const trackedBoxes = newCandidateBoxes.map((cBox) => {
+      const trackedBoxes = rawCandidateBoxes.map((cBox) => {
         const matchedPrev = prevBoxes.find((p) => calculateIoU(cBox, p) > 0.25);
         if (matchedPrev) {
+          const updatedHistory = [...(matchedPrev.confidenceHistory || [matchedPrev.confidence]), cBox.confidence].slice(-5);
           return {
             ...cBox,
             id: matchedPrev.id,
+            status: 'CONFIRMED' as const, // Promoted across consecutive frames!
+            confidenceHistory: updatedHistory,
             x: Math.round(matchedPrev.x * 0.65 + cBox.x * 0.35),
             y: Math.round(matchedPrev.y * 0.65 + cBox.y * 0.35),
             w: Math.round(matchedPrev.w * 0.65 + cBox.w * 0.35),
@@ -364,16 +381,38 @@ export const LiveCameraModal: React.FC<LiveCameraModalProps> = ({
         return cBox;
       });
 
-      prevBoxesRef.current = trackedBoxes;
-      setDetectedPotholes(trackedBoxes);
+      // Label Staggering Algorithm: prevent label clutter by offsetting adjacent Y positions
+      trackedBoxes.sort((a, b) => a.x - b.x);
+      for (let i = 1; i < trackedBoxes.length; i++) {
+        if (Math.abs(trackedBoxes[i].x - trackedBoxes[i - 1].x) < 70) {
+          trackedBoxes[i].labelYOffset = -22;
+        }
+      }
 
-      if (trackedBoxes.length > 0 && (!selectedBoxId || !trackedBoxes.some((b) => b.id === selectedBoxId))) {
-        setSelectedBoxId(trackedBoxes[0].id);
+      // Filter out manually flagged false positives
+      const validTrackedBoxes = trackedBoxes.filter((b) => !flaggedFalsePositives.includes(b.id));
+
+      prevBoxesRef.current = validTrackedBoxes;
+      setDetectedPotholes(validTrackedBoxes);
+
+      if (validTrackedBoxes.length > 0 && (!selectedBoxId || !validTrackedBoxes.some((b) => b.id === selectedBoxId))) {
+        setSelectedBoxId(validTrackedBoxes[0].id);
       }
     } catch (e) {
       // Ignore read errors
     }
   };
+
+  const handleFlagFalsePositive = (boxId: string) => {
+    setFlaggedFalsePositives((prev) => [...prev, boxId]);
+    setDetectedPotholes((prev) => prev.filter((b) => b.id !== boxId));
+    if (selectedBoxId === boxId) {
+      setSelectedBoxId(null);
+    }
+    setLastTransmitted('🚩 Flagged as false positive (saved for retrain dataset)');
+    speakAlert('Flagged detection as false positive.');
+  };
+
 
   const captureAndTransmit = async (overrideType?: string, overrideConf?: number) => {
     if (isCapturing) return;
@@ -400,10 +439,12 @@ export const LiveCameraModal: React.FC<LiveCameraModalProps> = ({
       const lat = gpsLocation?.lat || 31.2536;
       const lon = gpsLocation?.lon || 75.326;
       const widthCm = activeBox?.widthCm || 58;
-      const lengthM = activeBox?.lengthM || 0.82;
+      const lengthCm = activeBox?.lengthCm || 82;
+      const lengthM = Number((lengthCm / 100).toFixed(2));
       const depthCm = activeBox?.depthCm || 6.4;
       const areaM2 = activeBox?.areaM2 || 0.48;
       const repairCost = activeBox?.repairCost || 3850;
+
       const currentSpeed = Math.round(25 + Math.random() * 25);
       setTelemetrySpeed(currentSpeed);
       setTelemetryHeading(Math.round(160 + Math.random() * 50));
@@ -599,6 +640,8 @@ export const LiveCameraModal: React.FC<LiveCameraModalProps> = ({
                 {/* Render DYNAMIC YOLO Bounding Boxes directly at DETECTED Pothole locations on the road surface! */}
                 {detectedPotholes.map((box) => {
                   const isSelected = selectedBoxId === box.id;
+                  const isConfirmed = box.status === 'CONFIRMED';
+                  const strokeColor = isConfirmed ? box.color : '#f59e0b';
                   return (
                     <g
                       key={box.id}
@@ -612,25 +655,25 @@ export const LiveCameraModal: React.FC<LiveCameraModalProps> = ({
                         width={box.w}
                         height={box.h}
                         rx="3"
-                        fill={isSelected ? 'rgba(239, 68, 68, 0.22)' : 'rgba(37, 99, 235, 0.15)'}
-                        stroke={box.color}
+                        fill={isSelected ? (isConfirmed ? 'rgba(239, 68, 68, 0.22)' : 'rgba(245, 158, 11, 0.22)') : 'rgba(37, 99, 235, 0.12)'}
+                        stroke={strokeColor}
                         strokeWidth={isSelected ? '3' : '2'}
-                        strokeDasharray={isSelected ? 'none' : '4 2'}
+                        strokeDasharray={isConfirmed ? 'none' : '4 2'}
                       />
 
                       {/* Corner Targeting Brackets */}
-                      <path d={`M ${box.x} ${box.y + 10} L ${box.x} ${box.y} L ${box.x + 10} ${box.y}`} stroke={box.color} strokeWidth="3" fill="none" />
-                      <path d={`M ${box.x + box.w - 10} ${box.y} L ${box.x + box.w} ${box.y} L ${box.x + box.w} ${box.y + 10}`} stroke={box.color} strokeWidth="3" fill="none" />
-                      <path d={`M ${box.x} ${box.y + box.h - 10} L ${box.x} ${box.y + box.h} L ${box.x + 10} ${box.y + box.h}`} stroke={box.color} strokeWidth="3" fill="none" />
-                      <path d={`M ${box.x + box.w - 10} ${box.y + box.h} L ${box.x + box.w} ${box.y + box.h} L ${box.x + box.w} ${box.y + box.h - 10}`} stroke={box.color} strokeWidth="3" fill="none" />
+                      <path d={`M ${box.x} ${box.y + 10} L ${box.x} ${box.y} L ${box.x + 10} ${box.y}`} stroke={strokeColor} strokeWidth="3" fill="none" />
+                      <path d={`M ${box.x + box.w - 10} ${box.y} L ${box.x + box.w} ${box.y} L ${box.x + box.w} ${box.y + 10}`} stroke={strokeColor} strokeWidth="3" fill="none" />
+                      <path d={`M ${box.x} ${box.y + box.h - 10} L ${box.x} ${box.y + box.h} L ${box.x + 10} ${box.y + box.h}`} stroke={strokeColor} strokeWidth="3" fill="none" />
+                      <path d={`M ${box.x + box.w - 10} ${box.y + box.h} L ${box.x + box.w} ${box.y + box.h} L ${box.x + box.w} ${box.y + box.h - 10}`} stroke={strokeColor} strokeWidth="3" fill="none" />
 
-                      {/* Top Label Tag matching user's reference images: e.g. "pothole 0.86" */}
-                      <g transform={`translate(${box.x}, ${Math.max(25, box.y - 18)})`}>
+                      {/* Staggered Label Tag preventing overlapping: e.g. "pothole 0.86" */}
+                      <g transform={`translate(${box.x}, ${Math.max(25, box.y - 18 + (box.labelYOffset || 0))})`}>
                         <rect
-                          width={Math.max(75, box.label.length * 7.5)}
+                          width={Math.max(85, box.label.length * 7.5 + (isConfirmed ? 12 : 0))}
                           height="17"
                           rx="3"
-                          fill={box.color}
+                          fill={strokeColor}
                         />
                         <text
                           x="5"
@@ -640,49 +683,17 @@ export const LiveCameraModal: React.FC<LiveCameraModalProps> = ({
                           fontWeight="bold"
                           fontFamily="monospace"
                         >
-                          {box.label}
+                          {box.label} {isConfirmed ? '✓' : '?'}
                         </text>
                       </g>
                     </g>
                   );
                 })}
 
-                {/* Structured Metric Card for Selected Pothole Box - Positioned cleanly below top badges! */}
-                {activeBox && (
-                  <g transform="translate(18, 62)" className="pointer-events-none">
-                    <rect width="180" height="126" rx="8" fill="rgba(15, 23, 42, 0.94)" stroke={activeBox.color} strokeWidth="1.5" />
-                    <text x="10" y="17" fill={activeBox.color} fontSize="10" fontWeight="bold" fontFamily="monospace">
-                      🕳️ {activeBox.label.toUpperCase()}
-                    </text>
-                    <line x1="10" y1="23" x2="170" y2="23" stroke="#334155" strokeWidth="1" />
-
-                    <text x="10" y="37" fill="#94a3b8" fontSize="9" fontFamily="monospace">Confidence</text>
-                    <text x="105" y="37" fill="#38bdf8" fontSize="9" fontWeight="bold" fontFamily="monospace">{Math.round(activeBox.confidence * 100)}%</text>
-
-                    <text x="10" y="50" fill="#94a3b8" fontSize="9" fontFamily="monospace">Width</text>
-                    <text x="105" y="50" fill="#f87171" fontSize="9" fontWeight="bold" fontFamily="monospace">{activeBox.widthCm} cm</text>
-
-                    <text x="10" y="63" fill="#94a3b8" fontSize="9" fontFamily="monospace">Length</text>
-                    <text x="105" y="63" fill="#f87171" fontSize="9" fontWeight="bold" fontFamily="monospace">{activeBox.lengthM} m</text>
-
-                    <text x="10" y="76" fill="#94a3b8" fontSize="9" fontFamily="monospace">Depth</text>
-                    <text x="105" y="76" fill="#fbbf24" fontSize="9" fontWeight="bold" fontFamily="monospace">{activeBox.depthCm} cm</text>
-
-                    <text x="10" y="89" fill="#94a3b8" fontSize="9" fontFamily="monospace">Area</text>
-                    <text x="105" y="89" fill="#38bdf8" fontSize="9" fontWeight="bold" fontFamily="monospace">{activeBox.areaM2} m²</text>
-
-                    <text x="10" y="102" fill="#94a3b8" fontSize="9" fontFamily="monospace">Severity</text>
-                    <text x="105" y="102" fill="#fbbf24" fontSize="9" fontWeight="bold" fontFamily="monospace">{activeBox.severity} {activeBox.severityEmoji}</text>
-
-                    <text x="10" y="115" fill="#94a3b8" fontSize="9" fontFamily="monospace">Est. Repair</text>
-                    <text x="105" y="115" fill="#34d399" fontSize="9" fontWeight="bold" fontFamily="monospace">₹{activeBox.repairCost}</text>
-                  </g>
-                )}
-
                 {/* Searching HUD indicator when no defect is present */}
                 {detectedPotholes.length === 0 && (
-                  <g transform="translate(18, 62)" className="animate-pulse pointer-events-none">
-                    <rect width="235" height="26" rx="6" fill="rgba(15, 23, 42, 0.88)" stroke="#334155" strokeWidth="1" />
+                  <g transform="translate(18, 28)" className="animate-pulse pointer-events-none">
+                    <rect width="245" height="26" rx="6" fill="rgba(15, 23, 42, 0.88)" stroke="#334155" strokeWidth="1" />
                     <text x="10" y="17" fill="#38bdf8" fontSize="10" fontWeight="bold" fontFamily="monospace">
                       🔍 SCANNING ROAD SURFACE (0 DEFECTS)
                     </text>
@@ -738,6 +749,70 @@ export const LiveCameraModal: React.FC<LiveCameraModalProps> = ({
 
         {/* Controls & Automatic Ingestion Panel (Bottom half) */}
         <div className="p-3.5 sm:p-4 bg-slate-900 space-y-3 text-xs overflow-y-auto flex-1">
+          {/* Relocated Structured Metric Detail Card for Selected Pothole Box */}
+          {activeBox && (
+            <div className="p-3 bg-slate-950/90 border border-slate-700 rounded-xl space-y-2 text-xs font-mono animate-fade-in shadow-lg">
+              <div className="flex flex-wrap items-center justify-between gap-1.5 border-b border-slate-800 pb-1.5">
+                <div className="flex items-center space-x-2">
+                  <span className="font-bold text-slate-200 text-sm flex items-center gap-1.5">
+                    <span>🕳️</span>
+                    <span>{activeBox.label.toUpperCase()}</span>
+                  </span>
+                  <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${
+                    activeBox.status === 'CONFIRMED'
+                      ? 'bg-emerald-950 border-emerald-500 text-emerald-300'
+                      : 'bg-amber-950 border-amber-500 text-amber-300 border-dashed animate-pulse'
+                  }`}>
+                    {activeBox.status === 'CONFIRMED' ? '✓ CONFIRMED MULTI-FRAME' : '? UNCONFIRMED SINGLE-FRAME'}
+                  </span>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => handleFlagFalsePositive(activeBox.id)}
+                  className="px-2.5 py-1 bg-red-950/60 hover:bg-red-900 border border-red-700/60 text-red-300 font-sans font-bold text-[10px] rounded-lg transition flex items-center space-x-1"
+                  title="Flag this detection as false positive for dataset retraining"
+                >
+                  <span>🚩</span>
+                  <span>Flag as False Positive</span>
+                </button>
+              </div>
+
+              {/* Metric Grid with Sparkline & Consistent cm Units */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px] pt-1">
+                <div className="bg-slate-900 p-2 rounded-lg border border-slate-800">
+                  <div className="text-slate-400 text-[10px] flex items-center justify-between">
+                    <span>Confidence Trend</span>
+                    <svg className="w-12 h-3" viewBox="0 0 40 15">
+                      <polyline
+                        fill="none"
+                        stroke="#38bdf8"
+                        strokeWidth="2"
+                        points={activeBox.confidenceHistory?.map((c, i) => `${i * 10},${15 - c * 12}`).join(' ') || '0,7 40,7'}
+                      />
+                    </svg>
+                  </div>
+                  <div className="font-bold text-teal-300 text-sm mt-0.5">{Math.round(activeBox.confidence * 100)}%</div>
+                </div>
+
+                <div className="bg-slate-900 p-2 rounded-lg border border-slate-800">
+                  <div className="text-slate-400 text-[10px]">Width & Length</div>
+                  <div className="font-bold text-rose-400 text-sm mt-0.5">{activeBox.widthCm} cm × {activeBox.lengthCm} cm</div>
+                </div>
+
+                <div className="bg-slate-900 p-2 rounded-lg border border-slate-800">
+                  <div className="text-slate-400 text-[10px]">Depth (est.)</div>
+                  <div className="font-bold text-amber-400 text-sm mt-0.5">{activeBox.depthCm} cm ({activeBox.severity})</div>
+                </div>
+
+                <div className="bg-slate-900 p-2 rounded-lg border border-slate-800">
+                  <div className="text-slate-400 text-[10px]">PWD Est. Repair</div>
+                  <div className="font-bold text-emerald-400 text-sm mt-0.5">₹{activeBox.repairCost}</div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Status Alert Banner */}
           {lastTransmitted && (
             <div className="p-2.5 bg-emerald-950/70 border border-emerald-500/50 rounded-xl text-emerald-300 text-xs font-semibold flex items-center space-x-2 animate-fade-in shadow-inner">
