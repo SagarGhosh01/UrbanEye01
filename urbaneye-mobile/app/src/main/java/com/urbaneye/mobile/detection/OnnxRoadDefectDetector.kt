@@ -382,14 +382,23 @@ class OnnxRoadDefectDetector(
             val height = ((box.bottom - box.top) * source.height).toInt().coerceIn(1, source.height - top)
 
             val cropped = Bitmap.createBitmap(source, left, top, width, height)
-            val resized = Bitmap.createScaledBitmap(cropped, 160, 120, true)
+            val resized = Bitmap.createScaledBitmap(cropped, 240, 180, true)
 
             val outputStream = ByteArrayOutputStream()
-            resized.compress(Bitmap.CompressFormat.JPEG, 80, outputStream)
+            resized.compress(Bitmap.CompressFormat.JPEG, 85, outputStream)
             val bytes = outputStream.toByteArray()
             Base64.encodeToString(bytes, Base64.NO_WRAP)
         } catch (e: Exception) {
-            null
+            Log.e(tag, "Crop snippet error, fallback to full frame capture: ${e.message}")
+            try {
+                val resized = Bitmap.createScaledBitmap(source, 320, 240, true)
+                val outputStream = ByteArrayOutputStream()
+                resized.compress(Bitmap.CompressFormat.JPEG, 80, outputStream)
+                val bytes = outputStream.toByteArray()
+                Base64.encodeToString(bytes, Base64.NO_WRAP)
+            } catch (e2: Exception) {
+                null
+            }
         }
     }
 

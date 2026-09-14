@@ -692,9 +692,12 @@ export const DefectTable: React.FC<DefectTableProps> = ({
               <button onClick={() => setPreviewImage(null)} className={`text-base font-bold min-w-[32px] min-h-[32px] flex items-center justify-center ${isDark ? 'text-slate-400 hover:text-white' : 'text-slate-400 hover:text-slate-800'}`}>✕</button>
             </div>
             <img
-              src={resolveImageSrc(previewImage) || ''}
+              src={resolveImageSrc(previewImage)}
               alt="Road Defect Capture"
               className="w-full max-h-[70vh] object-contain rounded-lg"
+              onError={(e) => {
+                (e.target as HTMLImageElement).src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300"><rect width="400" height="300" fill="%231e293b"/><path d="M 50 150 Q 200 80 350 150 Q 200 220 50 150 Z" fill="%230f172a" stroke="%23f97316" stroke-width="4"/><circle cx="200" cy="150" r="45" fill="%23020617"/><text x="200" y="240" font-family="sans-serif" font-size="14" font-weight="bold" fill="%23f97316" text-anchor="middle">EDGE-AI ROAD DEFECT CAPTURE</text></svg>';
+              }}
             />
           </div>
         </div>

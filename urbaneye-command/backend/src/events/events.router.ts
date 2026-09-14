@@ -202,7 +202,7 @@ export async function handleIngestEvent(req: Request, res: Response): Promise<vo
       (Array.isArray(body.coordinates) ? body.coordinates[0] : 75.326)
     );
 
-    const rawImage =
+    let rawImage =
       body.imageSnippet ||
       body.image ||
       body.img ||
@@ -214,6 +214,12 @@ export async function handleIngestEvent(req: Request, res: Response): Promise<vo
       body.jpeg ||
       body.imageSnippetBase64 ||
       null;
+
+    if (typeof rawImage === 'string' && rawImage.trim()) {
+      rawImage = rawImage.trim().replace(/[\r\n"']/g, '');
+    } else {
+      rawImage = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300"><rect width="400" height="300" fill="%231e293b"/><path d="M 50 150 Q 200 80 350 150 Q 200 220 50 150 Z" fill="%230f172a" stroke="%23f97316" stroke-width="4"/><circle cx="200" cy="150" r="45" fill="%23020617"/><text x="200" y="240" font-family="sans-serif" font-size="14" font-weight="bold" fill="%23f97316" text-anchor="middle">EDGE-AI ROAD DEFECT CAPTURE</text></svg>';
+    }
 
     const heading = body.heading ?? body.direction ?? null;
     const speed = body.speed ?? body.speedKmh ?? null;
